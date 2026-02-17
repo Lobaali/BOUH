@@ -127,9 +127,9 @@ class AppointmentDetailsView extends StatelessWidget {
                     onPressed: () async {
                       try {
                         await PaymentSheet.show(total: total);
-                        print("✅ Payment completed!");
+                        print("Payment completed!");
                       } catch (e) {
-                        print("❌ Payment failed/cancelled: $e");
+                        print("Payment failed/cancelled: $e");
                       }
                     },
                     style: ElevatedButton.styleFrom(
