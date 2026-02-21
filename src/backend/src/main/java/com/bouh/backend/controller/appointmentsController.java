@@ -17,7 +17,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.bouh.backend.service.appointments.AppointmentCreationService;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -46,6 +49,17 @@ public class appointmentsController {
     public ResponseEntity<List<upcomingAppointmentDto>> getUpcoming(@PathVariable String caregiverId)
             throws ExecutionException, InterruptedException {
         List<upcomingAppointmentDto> list = appointmentsService.getUpcomingAppointments(caregiverId);
+        return ResponseEntity.ok(list);
+    }
+
+    /**
+     * GET /api/appointments/previous/{caregiverId} — returns list of previous
+     * booked appointments.
+     */
+    @GetMapping(value = "/previous/{caregiverId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<upcomingAppointmentDto>> getPrevious(@PathVariable String caregiverId)
+            throws ExecutionException, InterruptedException {
+        List<upcomingAppointmentDto> list = appointmentsService.getPreviousAppointments(caregiverId);
         return ResponseEntity.ok(list);
     }
 

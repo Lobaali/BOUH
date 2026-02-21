@@ -18,8 +18,11 @@ public class appointmentDto {
     private String childId;
     private String date;
     private String timeSlotId;
+    private String startTime;
+    private String endTime;
     private String meetingLink;
     private Long amount;
-    private String status;
+    /** 0 = absent, 1 = present. */
+    private Integer status;
     private String paymentIntentId;
 }
