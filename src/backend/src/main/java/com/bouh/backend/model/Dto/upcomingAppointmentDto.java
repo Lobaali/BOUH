@@ -20,7 +20,8 @@ public class upcomingAppointmentDto {
     private String doctorAreaOfKnowledge;
     private String doctorProfilePhotoURL;
     private String childName;
-    private String status;
+    /** 0 = absent, 1 = present. */
+    private Integer status;
     private String meetingLink;
     private String paymentIntentId;
 }

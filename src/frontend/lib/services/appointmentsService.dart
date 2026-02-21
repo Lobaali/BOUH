@@ -9,8 +9,31 @@ import 'package:bouh/dto/upcomingAppointmentDto.dart';
 class AppointmentsService {
   /// GET /api/appointments/upcoming/{caregiverId}. On 2xx parses JSON list to [UpcomingAppointmentDto].
   /// On non-2xx throws [Exception] with status code and body.
-  Future<List<UpcomingAppointmentDto>> getUpcomingAppointments(String caregiverId) async {
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/appointments/upcoming/$caregiverId');
+  Future<List<UpcomingAppointmentDto>> getUpcomingAppointments(
+    String caregiverId,
+  ) async {
+    final url = Uri.parse(
+      '${ApiConfig.baseUrl}/api/appointments/upcoming/$caregiverId',
+    );
+    final res = await http.get(url);
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('Backend error ${res.statusCode}: ${res.body}');
+    }
+
+    final list = jsonDecode(res.body) as List<dynamic>;
+    return list
+        .map((e) => UpcomingAppointmentDto.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// GET /api/appointments/previous/{caregiverId}. Same DTO as upcoming; parses to [UpcomingAppointmentDto].
+  Future<List<UpcomingAppointmentDto>> getPreviousAppointments(
+    String caregiverId,
+  ) async {
+    final url = Uri.parse(
+      '${ApiConfig.baseUrl}/api/appointments/previous/$caregiverId',
+    );
     final res = await http.get(url);
 
     if (res.statusCode < 200 || res.statusCode >= 300) {

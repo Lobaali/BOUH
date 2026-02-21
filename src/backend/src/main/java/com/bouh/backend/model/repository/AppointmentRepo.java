@@ -54,7 +54,9 @@ public class AppointmentRepo {
             dto.setDoctorId(getString(doc, "doctorId"));
             dto.setDate(normalizeDate(getString(doc, "date")));
             dto.setTimeSlotId(getString(doc, "timeSlotId"));
-            dto.setStatus(getString(doc, "status"));
+            dto.setStartTime(getSlotIndexForDerivation(doc));
+            dto.setEndTime(getString(doc, "endTime"));
+            dto.setStatus(getStatusAsInt(doc));
             dto.setMeetingLink(getString(doc, "meetingLink"));
             dto.setAmount(doc.getLong("amount"));
             dto.setPaymentIntentId(getString(doc, "paymentIntentId"));
@@ -70,6 +72,50 @@ public class AppointmentRepo {
         });
         // Sort by date ascending (same as orderBy("date"))
         list.sort(Comparator.comparing(appointmentDto::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
+        return list;
+    }
+
+    /**
+     * Returns appointments for the given caregiver with date < today, ordered by
+     * date descending (most recent first).
+     */
+    public List<appointmentDto> findByCaregiverIdAndDateBeforeToday(String caregiverId)
+            throws ExecutionException, InterruptedException {
+        if (caregiverId == null || caregiverId.isBlank()) {
+            return new ArrayList<>();
+        }
+        String today = ZonedDateTime.now(ZoneId.of("Asia/Riyadh")).toLocalDate().toString();
+
+        QuerySnapshot snapshot = firestore.collection("appointments")
+                .whereEqualTo("caregiverId", caregiverId)
+                .get()
+                .get();
+
+        List<appointmentDto> list = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
+            appointmentDto dto = new appointmentDto();
+            dto.setAppointmentId(doc.getId());
+            dto.setCaregiverId(getString(doc, "caregiverId"));
+            dto.setChildId(getString(doc, "childId"));
+            dto.setDoctorId(getString(doc, "doctorId"));
+            dto.setDate(normalizeDate(getString(doc, "date")));
+            dto.setTimeSlotId(getString(doc, "timeSlotId"));
+            dto.setStartTime(getSlotIndexForDerivation(doc));
+            dto.setEndTime(getString(doc, "endTime"));
+            dto.setStatus(getStatusAsInt(doc));
+            dto.setMeetingLink(getString(doc, "meetingLink"));
+            dto.setAmount(doc.getLong("amount"));
+            dto.setPaymentIntentId(getString(doc, "paymentIntentId"));
+            list.add(dto);
+        }
+
+        list.removeIf(d -> {
+            String date = d.getDate();
+            if (date == null || date.isEmpty())
+                return true;
+            return date.compareTo(today) >= 0;
+        });
+        list.sort(Comparator.comparing(appointmentDto::getDate, Comparator.nullsLast(Comparator.reverseOrder())));
         return list;
     }
 
@@ -95,13 +141,32 @@ public class AppointmentRepo {
             dto.setDoctorId(getString(doc, "doctorId"));
             dto.setDate(normalizeDate(getString(doc, "date")));
             dto.setTimeSlotId(getString(doc, "timeSlotId"));
-            dto.setStatus(getString(doc, "status"));
+            dto.setStartTime(getSlotIndexForDerivation(doc));
+            dto.setEndTime(getString(doc, "endTime"));
+            dto.setStatus(getStatusAsInt(doc));
             dto.setMeetingLink(getString(doc, "meetingLink"));
             dto.setAmount(doc.getLong("amount"));
             dto.setPaymentIntentId(getString(doc, "paymentIntentId"));
             list.add(dto);
         }
         return list;
+    }
+
+    /** Status stored as number in DB: 0 or 1. */
+    private static int getStatusAsInt(QueryDocumentSnapshot doc) {
+        Object v = doc.get("status");
+        if (v instanceof Number) return ((Number) v).intValue() == 1 ? 1 : 0;
+        if (v != null && "1".equals(v.toString().trim())) return 1;
+        return 0;
+    }
+
+    /** Slot index (0-9) as string for time derivation: from slotIndex field */
+    private static String getSlotIndexForDerivation(QueryDocumentSnapshot doc) {
+        Object slotIndex = doc.get("slotIndex");
+        if (slotIndex != null) {
+            return slotIndex.toString();
+        }
+        return getString(doc, "startTime");
     }
 
     private static String getString(QueryDocumentSnapshot doc, String field) {

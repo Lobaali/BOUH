@@ -8,14 +8,7 @@ import 'package:bouh/services/appointmentsService.dart';
 
 /// Booked appointments – upcoming
 ///
-/// Layout (matches reference):
-/// - Title "المواعيد" centered
-/// - Top segmented control: "متاحة" (inactive), "محجوزة" (active)
-/// - Secondary toggle: "القادمة" (active), "السابقة" (inactive)
-/// - List of [AppointmentCard] (first = انضمام orange, others = الغاء red)
-/// - Bottom nav with المواعيد tab active
 ///
-/// Data: optional [caregiverId] from session/caller; when set, loads real data from backend.
 class BookedAppointmentsUpcoming extends StatefulWidget {
   const BookedAppointmentsUpcoming({
     super.key,
@@ -333,7 +326,7 @@ class _BookedAppointmentsUpcomingState
     );
   }
 
-  /// Map DTO to AppointmentCard. For انضمام (first card), onActionTap opens meetingLink if present.
+  /// Map DTO to AppointmentCard.
   Widget _buildCardFor(UpcomingAppointmentDto dto, {required bool isFirst}) {
     final dateStr = _formatDate(dto.date);
     final timeStr = _formatTimeRange(dto.startTime, dto.endTime);
@@ -382,20 +375,13 @@ class _BookedAppointmentsUpcomingState
     return '$d/$m/$y';
   }
 
-  /// Format startTime and endTime for display, appending صباحاً or مساءً from first time hour (24h).
+  /// Format startTime and endTime for display.
   static String _formatTimeRange(String? start, String? end) {
+    const suffix = 'مساءً';
     final s = start ?? '';
     final e = end ?? '';
-    final suffix = _suffixFromTimeString(s);
     if (s.isEmpty && e.isEmpty) return '';
     if (e.isEmpty) return '$s $suffix';
     return '$s - $e $suffix';
-  }
-
-  static String _suffixFromTimeString(String time) {
-    final match = RegExp(r'^(\d{1,2})').firstMatch(time);
-    if (match == null) return 'مساءً';
-    final hour = int.tryParse(match.group(1) ?? '') ?? 0;
-    return hour < 12 ? 'صباحًا' : 'مساءً';
   }
 }
