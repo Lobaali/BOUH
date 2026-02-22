@@ -14,9 +14,7 @@ public class AppointmentCreationService {
 
     public String create(appointmentDto dto) {
 
-        if (dto.getStatus() == null || dto.getStatus().isBlank()) {
-            dto.setStatus("ABSENT");
-        }
+        dto.setStatus(0);
 
         return appointmentRepository.save(dto);
     }
