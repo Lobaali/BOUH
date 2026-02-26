@@ -1,3 +1,4 @@
+import 'package:bouh/View/BookAppointment/DoctorDetails.dart';
 import 'package:flutter/material.dart';
 import '../../theme/base_themes/colors.dart';
 import 'package:bouh/View/caregiverHomepage/widgets/suggestedDoctorCard.dart';
@@ -284,10 +285,20 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             for (int i = 0; i < doctors.length; i++) ...[
-              SuggestedDoctorCard(
-                name: doctors[i].name,
-                specialty: doctors[i].areaOfKnowledge,
-                rating: doctors[i].averageRating.round(), // if card expects int
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DoctorDetailsView(doctor: doctors[i]),
+                    ),
+                  );
+                },
+                child: SuggestedDoctorCard(
+                  name: doctors[i].name,
+                  specialty: doctors[i].areaOfKnowledge,
+                  rating: doctors[i].rating.toInt(),
+                ),
               ),
               if (i < doctors.length - 1) const SizedBox(height: _cardGap),
             ],

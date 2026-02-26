@@ -1,27 +1,31 @@
-import 'drawingDto.dart';
-
 class ChildDto {
-  final String childId;
+  final String childID;
   final String name;
   final String dateOfBirth;
   final String gender;
-  final List<DrawingDto>? drawings;
 
   ChildDto({
-    required this.childId,
+    required this.childID,
     required this.name,
     required this.dateOfBirth,
     required this.gender,
-    this.drawings,
   });
+
+  factory ChildDto.fromJson(Map<String, dynamic> json) {
+    return ChildDto(
+      childID: json['childID'] ?? "",
+      name: json['name'] ?? "",
+      dateOfBirth: json['dateOfBirth'] ?? "",
+      gender: json['gender'] ?? "",
+    );
+  }
 
   Map<String, dynamic> toJson() {
     return {
-      'childId': childId,
+      'childID': childID,
       'name': name,
       'dateOfBirth': dateOfBirth,
       'gender': gender,
-      'drawings': drawings?.map((d) => d.toJson()).toList(),
     };
   }
 }
