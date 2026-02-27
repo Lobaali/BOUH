@@ -273,12 +273,6 @@ class _CaregiverSignupViewState extends State<CaregiverSignupView> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Image.asset(
-                                'assets/images/login_header.png',
-                                width: 60,
-                                fit: BoxFit.contain,
-                              ),
-                              const SizedBox(width: 35),
                               const Expanded(
                                 child: Text(
                                   'دقائق قليلة ويكتمل إنشاء الحساب',
@@ -289,6 +283,12 @@ class _CaregiverSignupViewState extends State<CaregiverSignupView> {
                                     color: BColors.textDarkestBlue,
                                   ),
                                 ),
+                              ),
+                              const SizedBox(width: 35),
+                              Image.asset(
+                                'assets/images/login_header.png',
+                                width: 60,
+                                fit: BoxFit.contain,
                               ),
                             ],
                           ),
@@ -397,8 +397,8 @@ class _CaregiverSignupViewState extends State<CaregiverSignupView> {
 
               /// Back arrow overlay (consistent across account creation flows).
               Positioned(
-                top: -10,
-                right: 30,
+                top: 8,
+                right: 16,
                 child: IconButton(
                   icon: const Icon(
                     Icons.arrow_back_ios_new_rounded,

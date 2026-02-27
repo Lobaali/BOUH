@@ -238,22 +238,22 @@ class _CaregiverAccountCreationStep2State
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Image.asset(
-                              'assets/images/login_header.png',
-                              width: 60,
-                              fit: BoxFit.contain,
-                            ),
-                            const SizedBox(width: 35),
                             const Expanded(
                               child: Text(
                                 'للاستمرار , يجب ادخال طفل واحد كحد ادنى',
                                 textAlign: TextAlign.right,
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 8,
                                   fontWeight: FontWeight.w600,
                                   color: BColors.textDarkestBlue,
                                 ),
                               ),
+                            ),
+                            const SizedBox(width: 35),
+                            Image.asset(
+                              'assets/images/login_header.png',
+                              width: 60,
+                              fit: BoxFit.contain,
                             ),
                           ],
                         ),
@@ -469,8 +469,8 @@ class _CaregiverAccountCreationStep2State
               ),
 
               Positioned(
-                top: -10,
-                right: 30,
+                top: 8,
+                right: 16,
                 child: IconButton(
                   icon: const Icon(
                     Icons.arrow_back_ios_new_rounded,
