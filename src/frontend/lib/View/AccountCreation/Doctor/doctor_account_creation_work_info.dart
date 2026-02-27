@@ -95,8 +95,8 @@ class _DoctorAccountCreationStep2State
       );
     } catch (e) {
       if (mounted) {
-        final message = e is FirebaseAuthException &&
-                e.code == 'email-already-in-use'
+        final message =
+            e is FirebaseAuthException && e.code == 'email-already-in-use'
             ? 'البريد الإلكتروني مستخدم بالفعل بحساب آخر.'
             : 'تعذر إنشاء الحساب. تحقق من البيانات وحاول مرة أخرى.';
         setState(() {
@@ -131,7 +131,10 @@ class _DoctorAccountCreationStep2State
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: BColors.validationError, width: 1.5),
+        borderSide: const BorderSide(
+          color: BColors.validationError,
+          width: 1.5,
+        ),
       ),
     );
   }
@@ -188,7 +191,7 @@ class _DoctorAccountCreationStep2State
 
                       // ================= FIELDS =================
                       _LabeledTextField(
-                        label: 'مؤهلات',
+                        label: 'مؤهلات *',
                         controller: _qualificationsCtrl,
                         keyboardType: TextInputType.text,
                         decoration: _inputDecoration(),
@@ -197,7 +200,7 @@ class _DoctorAccountCreationStep2State
                       const SizedBox(height: 14),
 
                       _LabeledTextField(
-                        label: 'رقم التخصص',
+                        label: 'رقم التخصص *',
                         controller: _classificationCtrl,
                         keyboardType: TextInputType.text,
                         decoration: _inputDecoration(),
@@ -206,7 +209,7 @@ class _DoctorAccountCreationStep2State
                       const SizedBox(height: 14),
 
                       _LabeledTextField(
-                        label: 'رقم الايبان',
+                        label: 'رقم الايبان *',
                         controller: _ibanCtrl,
                         keyboardType: TextInputType.text,
                         decoration: _inputDecoration(),
@@ -220,7 +223,7 @@ class _DoctorAccountCreationStep2State
                         children: [
                           Expanded(
                             child: _LabeledDropdown(
-                              label: 'التخصص',
+                              label: 'التخصص *',
                               hint: '',
                               value: _specialty,
                               items: _specialties,
@@ -230,7 +233,7 @@ class _DoctorAccountCreationStep2State
                           const SizedBox(width: 12),
                           Expanded(
                             child: _LabeledDropdown(
-                              label: 'سنوات الخبرة',
+                              label: 'سنوات الخبرة *',
                               hint: '',
                               value: _years,
                               items: _yearsList,
