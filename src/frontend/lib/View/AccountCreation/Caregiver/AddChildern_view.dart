@@ -240,10 +240,10 @@ class _CaregiverAccountCreationStep2State
                           children: [
                             const Expanded(
                               child: Text(
-                                'للاستمرار , يجب ادخال طفل واحد كحد ادنى',
+                                ' أضف طفلاً واحداً على الأقل للمتابعة',
                                 textAlign: TextAlign.right,
                                 style: TextStyle(
-                                  fontSize: 8,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   color: BColors.textDarkestBlue,
                                 ),
@@ -258,7 +258,7 @@ class _CaregiverAccountCreationStep2State
                           ],
                         ),
                       ),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 28),
 
                       ListView.builder(
                         shrinkWrap: true,
