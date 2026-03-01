@@ -423,7 +423,7 @@ class _BookedAppointmentsUpcomingState
 
     if (pi == null || pi.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("❌ لا يوجد paymentIntentId لهذا الموعد")),
+        const SnackBar(content: Text(" لا يوجد paymentIntentId لهذا الموعد")),
       );
       return false;
     }
@@ -464,6 +464,7 @@ class _BookedAppointmentsUpcomingState
             ),
             title: const Text(
               'تم الإلغاء بنجاح',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
@@ -499,7 +500,7 @@ class _BookedAppointmentsUpcomingState
         ),
       );
 
-      return true; // ✅ Refund succeeded — friend uses this to cancel the appointment
+      return true; //  Refund succeeded — friend uses this to cancel the appointment
     } catch (e) {
       if (!mounted) return false;
 
@@ -515,6 +516,7 @@ class _BookedAppointmentsUpcomingState
             ),
             title: const Text(
               'فشل الإلغاء',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
