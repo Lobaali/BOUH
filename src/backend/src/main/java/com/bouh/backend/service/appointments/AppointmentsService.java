@@ -6,6 +6,7 @@ import com.google.cloud.Timestamp;
 import com.bouh.backend.model.Dto.doctorDto;
 import com.bouh.backend.model.Dto.upcomingAppointmentDto;
 import com.bouh.backend.model.repository.AppointmentRepo;
+import com.bouh.backend.model.repository.caregiverRepo;
 import com.bouh.backend.model.repository.childRepo;
 import com.bouh.backend.model.repository.doctorRepo;
 import org.springframework.stereotype.Service;
@@ -39,11 +40,14 @@ public class AppointmentsService {
     private final AppointmentRepo appointmentRepo;
     private final doctorRepo doctorRepo;
     private final childRepo childRepo;
+    private final caregiverRepo caregiverRepo;
 
-    public AppointmentsService(AppointmentRepo appointmentRepo, doctorRepo doctorRepo, childRepo childRepo) {
+    public AppointmentsService(AppointmentRepo appointmentRepo, doctorRepo doctorRepo, childRepo childRepo,
+            caregiverRepo caregiverRepo) {
         this.appointmentRepo = appointmentRepo;
         this.doctorRepo = doctorRepo;
         this.childRepo = childRepo;
+        this.caregiverRepo = caregiverRepo;
     }
 
     /**
@@ -76,6 +80,112 @@ public class AppointmentsService {
         }
         sortNewestFirst(past);
         return buildViewDtos(past);
+    }
+
+
+    public List<upcomingAppointmentDto> getUpcomingAppointmentsByDoctor(String doctorId)
+            throws ExecutionException, InterruptedException {
+        List<appointmentDto> docs = appointmentRepo.findByDoctorIdAndDateFromToday(doctorId);
+        LocalTime now = ZonedDateTime.now(ZONE).toLocalTime();
+        String today = ZonedDateTime.now(ZONE).toLocalDate().toString();
+        docs.removeIf(d -> isTodaySlotPassed(d, today, now));
+        sortNearestFirst(docs);
+        return buildViewDtosForDoctor(docs);
+    }
+
+    public List<upcomingAppointmentDto> getPreviousAppointmentsByDoctor(String doctorId)
+            throws ExecutionException, InterruptedException {
+        List<appointmentDto> past = appointmentRepo.findByDoctorIdAndDateBeforeToday(doctorId);
+        List<appointmentDto> fromToday = appointmentRepo.findByDoctorIdAndDateFromToday(doctorId);
+        String today = ZonedDateTime.now(ZONE).toLocalDate().toString();
+        LocalTime now = ZonedDateTime.now(ZONE).toLocalTime();
+        for (appointmentDto d : fromToday) {
+            if (isTodaySlotPassed(d, today, now))
+                past.add(d);
+        }
+        sortNewestFirst(past);
+        return buildViewDtosForDoctor(past);
+    }
+
+
+    private List<upcomingAppointmentDto> buildViewDtosForDoctor(List<appointmentDto> docs)
+            throws ExecutionException, InterruptedException {
+        if (docs.isEmpty())
+            return new ArrayList<>();
+        Set<String> caregiverIds = new HashSet<>();
+        Set<String> childKeys = new HashSet<>();
+        for (appointmentDto d : docs) {
+            if (d.getCaregiverId() != null)
+                caregiverIds.add(d.getCaregiverId());
+            if (d.getCaregiverId() != null && d.getChildId() != null)
+                childKeys.add(d.getCaregiverId() + ":" + d.getChildId());
+        }
+        Map<String, CompletableFuture<String>> caregiverFutures = new HashMap<>();
+        for (String cgId : caregiverIds) {
+            String id = cgId;
+            caregiverFutures.put(id, CompletableFuture.supplyAsync(() -> {
+                try {
+                    return caregiverRepo.findNameByUid(id);
+                } catch (Exception e) {
+                    return null;
+                }
+            }));
+        }
+        Map<String, CompletableFuture<String>> childFutures = new HashMap<>();
+        for (String key : childKeys) {
+            int i = key.indexOf(':');
+            String cgId = key.substring(0, i);
+            String chId = key.substring(i + 1);
+            childFutures.put(key, CompletableFuture.supplyAsync(() -> {
+                try {
+                    String n = childRepo.findChildName(cgId, chId);
+                    return n != null ? n : "";
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }));
+        }
+        List<CompletableFuture<?>> all = new ArrayList<>();
+        all.addAll(caregiverFutures.values());
+        all.addAll(childFutures.values());
+        CompletableFuture.allOf(all.toArray(new CompletableFuture[0])).join();
+        Map<String, String> caregiverNameCache = new HashMap<>();
+        caregiverFutures.forEach((id, f) -> caregiverNameCache.put(id, f.join()));
+        Map<String, String> childNameCache = new HashMap<>();
+        childFutures.forEach((k, f) -> childNameCache.put(k, f.join()));
+
+        List<upcomingAppointmentDto> result = new ArrayList<>(docs.size());
+        for (appointmentDto doc : docs) {
+            String caregiverName = doc.getCaregiverId() != null ? caregiverNameCache.get(doc.getCaregiverId()) : null;
+            String cacheKey = doc.getCaregiverId() != null && doc.getChildId() != null
+                    ? doc.getCaregiverId() + ":" + doc.getChildId()
+                    : null;
+            String childName = cacheKey != null ? childNameCache.get(cacheKey) : null;
+            if ("".equals(childName))
+                childName = null;
+            Timestamp startDt = doc.getStartDateTime();
+            String dateStr = null;
+            String[] displayTimes = new String[] { null, null };
+            if (startDt != null) {
+                ZonedDateTime zdt = ZonedDateTime
+                        .ofInstant(Instant.ofEpochSecond(startDt.getSeconds(), startDt.getNanos()), ZONE);
+                dateStr = zdt.toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE);
+                int slotIdx = TimeSlotConfig.getSlotIndexForStartTime(zdt.toLocalTime());
+                displayTimes = formatTimesFromSlotIndex(slotIdx >= 0 ? String.valueOf(slotIdx) : null);
+            }
+            upcomingAppointmentDto dto = new upcomingAppointmentDto();
+            dto.setAppointmentId(doc.getAppointmentId());
+            dto.setDate(dateStr);
+            dto.setStartTime(displayTimes[0]);
+            dto.setEndTime(displayTimes[1]);
+            dto.setCaregiverName(caregiverName);
+            dto.setChildName(childName);
+            dto.setStatus(doc.getStatus() != null && doc.getStatus() == 1 ? 1 : 0);
+            dto.setMeetingLink(doc.getMeetingLink());
+            dto.setPaymentIntentId(doc.getPaymentIntentId());
+            result.add(dto);
+        }
+        return result;
     }
 
     // True if the appointment is today and its slot has already ended.

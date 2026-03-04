@@ -6,6 +6,7 @@ import 'package:bouh/authentication/AuthSession.dart';
 import 'package:bouh/authentication/AuthService.dart';
 import 'package:bouh/dto/upcomingAppointmentDto.dart';
 import 'package:bouh/services/appointmentsService.dart';
+import 'package:bouh/widgets/loading_overlay.dart';
 import 'widgets/previousBookedAppointmentCard.dart';
 
 /// Booked appointments – previous.
@@ -48,7 +49,10 @@ class _BookedAppointmentsPreviousState
 
   final AppointmentsService _appointmentsService = AppointmentsService();
 
-  StreamSubscription<(List<UpcomingAppointmentDto>, List<UpcomingAppointmentDto>)>? _subscription;
+  StreamSubscription<
+    (List<UpcomingAppointmentDto>, List<UpcomingAppointmentDto>)
+  >?
+  _subscription;
 
   // Upcoming list from last stream event; ticker moves ended ones into _list (no HTTP).
   List<UpcomingAppointmentDto> _upcomingCache = [];
@@ -136,7 +140,10 @@ class _BookedAppointmentsPreviousState
       bool changed = false;
       setState(() {
         _upcomingCache.removeWhere((dto) {
-          final end = AppointmentsService.parseAppointmentTime(dto.date, dto.endTime);
+          final end = AppointmentsService.parseAppointmentTime(
+            dto.date,
+            dto.endTime,
+          );
           if (end == null || now.isBefore(end)) return false;
           _list.add(dto);
           changed = true;
@@ -145,8 +152,14 @@ class _BookedAppointmentsPreviousState
         // Re-sort newest first when new items were added
         if (changed) {
           _list.sort((a, b) {
-            final ta = AppointmentsService.parseAppointmentTime(a.date, a.startTime);
-            final tb = AppointmentsService.parseAppointmentTime(b.date, b.startTime);
+            final ta = AppointmentsService.parseAppointmentTime(
+              a.date,
+              a.startTime,
+            );
+            final tb = AppointmentsService.parseAppointmentTime(
+              b.date,
+              b.startTime,
+            );
             if (ta == null && tb == null) return 0;
             if (ta == null) return 1;
             if (tb == null) return -1;
@@ -191,31 +204,36 @@ class _BookedAppointmentsPreviousState
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: BColors.white,
-        body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildTitle(),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: _contentPaddingH,
+        body: Stack(
+          children: [
+            SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildTitle(),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: _contentPaddingH,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildSegmentedControl(context),
+                          const SizedBox(height: _sectionGap),
+                          _buildFilterBar(),
+                          const SizedBox(height: _sectionGap),
+                          _buildCardList(),
+                          SizedBox(height: CaregiverBottomNav.barHeight + _cardGap),
+                        ],
+                      ),
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildSegmentedControl(context),
-                      const SizedBox(height: _sectionGap),
-                      _buildFilterBar(),
-                      const SizedBox(height: _sectionGap),
-                      _buildCardList(),
-                      SizedBox(height: CaregiverBottomNav.barHeight + _cardGap),
-                    ],
-                  ),
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+            if (_loading) const BouhLoadingOverlay(showBarrier: false),
+          ],
         ),
         bottomNavigationBar: Material(
           clipBehavior: Clip.none,
@@ -361,7 +379,7 @@ class _BookedAppointmentsPreviousState
 
   Widget _buildCardList() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const SizedBox.shrink();
     }
     if (_error != null) {
       return const Center(

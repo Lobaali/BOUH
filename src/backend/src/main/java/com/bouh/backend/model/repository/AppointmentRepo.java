@@ -101,6 +101,56 @@ public class AppointmentRepo {
         return list;
     }
 
+
+    public List<appointmentDto> findByDoctorIdAndDateFromToday(String doctorId)
+            throws ExecutionException, InterruptedException {
+        if (doctorId == null || doctorId.isBlank()) {
+            return new ArrayList<>();
+        }
+        QuerySnapshot snapshot = firestore.collection("appointments")
+                .whereEqualTo("doctorId", doctorId)
+                .get()
+                .get();
+        List<appointmentDto> list = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
+            appointmentDto dto = mapDocToDto(doc);
+            list.add(dto);
+        }
+        Instant todayStart = ZonedDateTime.now(ZONE).toLocalDate().atStartOfDay(ZONE).toInstant();
+        list.removeIf(d -> {
+            Timestamp t = d.getStartDateTime();
+            return t == null || Instant.ofEpochSecond(t.getSeconds(), t.getNanos()).isBefore(todayStart);
+        });
+        list.sort(Comparator.comparing(appointmentDto::getStartDateTime,
+                Comparator.nullsLast(Comparator.naturalOrder())));
+        return list;
+    }
+
+
+    public List<appointmentDto> findByDoctorIdAndDateBeforeToday(String doctorId)
+            throws ExecutionException, InterruptedException {
+        if (doctorId == null || doctorId.isBlank()) {
+            return new ArrayList<>();
+        }
+        QuerySnapshot snapshot = firestore.collection("appointments")
+                .whereEqualTo("doctorId", doctorId)
+                .get()
+                .get();
+        List<appointmentDto> list = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
+            appointmentDto dto = mapDocToDto(doc);
+            list.add(dto);
+        }
+        Instant todayStart = ZonedDateTime.now(ZONE).toLocalDate().atStartOfDay(ZONE).toInstant();
+        list.removeIf(d -> {
+            Timestamp t = d.getStartDateTime();
+            return t == null || Instant.ofEpochSecond(t.getSeconds(), t.getNanos()).compareTo(todayStart) >= 0;
+        });
+        list.sort(Comparator.comparing(appointmentDto::getStartDateTime,
+                Comparator.nullsLast(Comparator.reverseOrder())));
+        return list;
+    }
+
     /**
      * Returns all appointments for the caregiver (no date/status filter). For
      * debugging: GET /api/dev/debug-appointments/{caregiverId}

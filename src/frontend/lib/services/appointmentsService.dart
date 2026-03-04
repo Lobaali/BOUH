@@ -70,6 +70,89 @@ class AppointmentsService {
         .toList();
   }
 
+  /// GET /api/appointments/upcoming/doctor/{doctorId}. For doctor view; DTO includes caregiverName.
+  Future<List<UpcomingAppointmentDto>> getUpcomingAppointmentsByDoctor(
+    String doctorId,
+  ) async {
+    final token = _session.idToken;
+    if (token == null || token.isEmpty) {
+      throw Exception('UNAUTHORIZED');
+    }
+    final url = Uri.parse(
+      '${ApiConfig.baseUrl}/api/appointments/upcoming/doctor/$doctorId',
+    );
+    final res = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('Backend error ${res.statusCode}: ${res.body}');
+    }
+    final list = jsonDecode(res.body) as List<dynamic>;
+    return list
+        .map((e) => UpcomingAppointmentDto.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// GET /api/appointments/previous/doctor/{doctorId}. For doctor view; DTO includes caregiverName.
+  Future<List<UpcomingAppointmentDto>> getPreviousAppointmentsByDoctor(
+    String doctorId,
+  ) async {
+    final token = _session.idToken;
+    if (token == null || token.isEmpty) {
+      throw Exception('UNAUTHORIZED');
+    }
+    final url = Uri.parse(
+      '${ApiConfig.baseUrl}/api/appointments/previous/doctor/$doctorId',
+    );
+    final res = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('Backend error ${res.statusCode}: ${res.body}');
+    }
+    final list = jsonDecode(res.body) as List<dynamic>;
+    return list
+        .map((e) => UpcomingAppointmentDto.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Same as getFullPreviousWithUpcoming but for doctor: previous + upcoming merged; used for stream.
+  Future<(List<UpcomingAppointmentDto>, List<UpcomingAppointmentDto>)>
+      getFullPreviousWithUpcomingForDoctor(String doctorId) async {
+    final results = await Future.wait([
+      getPreviousAppointmentsByDoctor(doctorId),
+      getUpcomingAppointmentsByDoctor(doctorId),
+    ]);
+    final previous = results[0];
+    final upcoming = results[1];
+    final now = DateTime.now();
+    final existingIds = previous.map((d) => d.appointmentId).toSet();
+    for (final dto in upcoming) {
+      if (existingIds.contains(dto.appointmentId)) continue;
+      final end = parseAppointmentTime(dto.date, dto.endTime);
+      if (end != null && !now.isBefore(end)) previous.add(dto);
+    }
+    final previousIds = previous.map((d) => d.appointmentId).toSet();
+    upcoming.removeWhere((d) => previousIds.contains(d.appointmentId));
+    previous.sort((a, b) {
+      final ta = parseAppointmentTime(a.date, a.startTime);
+      final tb = parseAppointmentTime(b.date, b.startTime);
+      if (ta == null && tb == null) return 0;
+      if (ta == null) return 1;
+      if (tb == null) return -1;
+      return tb.compareTo(ta);
+    });
+    return (previous, upcoming);
+  }
+
   /// Listen to Firestore for realtime appointment changes.
   /// Each time Firestore reports a change, we call the backend to get the
   /// latest enriched upcoming appointments (with doctor and child names).
@@ -152,5 +235,26 @@ class AppointmentsService {
         .where('caregiverId', isEqualTo: caregiverId)
         .snapshots()
         .asyncMap((_) => getFullPreviousWithUpcoming(caregiverId));
+  }
+
+  /// Realtime stream for doctor upcoming: Firestore where doctorId, then backend enrich.
+  Stream<List<UpcomingAppointmentDto>> streamUpcomingAppointmentsByDoctor(
+    String doctorId,
+  ) {
+    return FirebaseFirestore.instance
+        .collection('appointments')
+        .where('doctorId', isEqualTo: doctorId)
+        .snapshots()
+        .asyncMap((_) => getUpcomingAppointmentsByDoctor(doctorId));
+  }
+
+  /// Realtime stream for doctor previous: Firestore where doctorId, then merged previous+upcoming.
+  Stream<(List<UpcomingAppointmentDto>, List<UpcomingAppointmentDto>)>
+      streamPreviousAppointmentsByDoctor(String doctorId) {
+    return FirebaseFirestore.instance
+        .collection('appointments')
+        .where('doctorId', isEqualTo: doctorId)
+        .snapshots()
+        .asyncMap((_) => getFullPreviousWithUpcomingForDoctor(doctorId));
   }
 }
