@@ -492,7 +492,7 @@ class DoctorHomePageState extends State<DoctorHomePage>
           // Example: NetworkImage(profileUrl) + placeholder fallback.
           const CircleAvatar(
             radius: 28,
-            backgroundImage: AssetImage('assets/images/doctor.png'),
+            backgroundImage: AssetImage('assets/images/doctor.jpg'),
           ),
           const SizedBox(width: 12),
 

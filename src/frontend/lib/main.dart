@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'authentication/AuthLogInRoute.dart';
+import 'services/pushNotificationService.dart';
 
 void main() async {
-  await initializeDateFormatting('ar_SA', null);
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await initializeDateFormatting('ar_SA', null);
 
-  // Request notification permission so backend can send push via FCM.
-  await Permission.notification.request();
+  await PushNotificationService.instance.init();
 
   runApp(const MyApp());
 }
