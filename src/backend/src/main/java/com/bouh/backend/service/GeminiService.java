@@ -64,13 +64,9 @@ public class GeminiService {
 
     // Gemini generation options.
     // Controls how creative the answer is (higher = more variety).
-    private static final double TEMPERATURE = 0.6;
-    // Controls sampling diversity using probability mass (top-p sampling).
-    private static final double TOP_P = 0.9;
-    // Controls how many tokens Gemini considers when sampling.
-    private static final int TOP_K = 40;
+    private static final double TEMPERATURE = 1.0;
     // Limits how long Gemini can reply.
-    private static final int MAX_OUTPUT_TOKENS = 1024;
+    private static final int MAX_OUTPUT_TOKENS = 800;
 
     // HTTP Client 
 
@@ -205,10 +201,6 @@ public class GeminiService {
         Map<String, Object> generationConfig = Map.of(
                 "temperature",
                 TEMPERATURE,
-                "topP",
-                TOP_P,
-                "topK",
-                TOP_K,
                 "maxOutputTokens",
                 MAX_OUTPUT_TOKENS
         );
