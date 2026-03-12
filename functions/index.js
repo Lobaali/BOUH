@@ -60,15 +60,15 @@ export const sendCancellationNotification = onRequest(async (req, res) => {
   let body;
   if (notificationType === "doctor_canceled") {
     // Backend sends full label e.g. "يوم الأحد 14 مايو الساعة 5:30 مساءً"
-    title = timeLabel
+    body = timeLabel
       ? "تم إلغاء موعد " + timeLabel
       : "تم إلغاء الموعد";
-    body = "تم إلغاء الموعد من قبل الطبيب.";
+    title = "تم إلغاء الموعد من قبل الطبيب.";
   } else if (notificationType === "caregiver_canceled") {
-    title = timeLabel
+    body = timeLabel
       ? "تم إلغاء موعد اليوم الساعة " + timeLabel
       : "تم إلغاء الموعد";
-    body = "تم إلغاء الموعد من قبل مقدم الرعاية.";
+    title = "تم إلغاء الموعد من قبل مقدم الرعاية.";
   } else {
     console.log("Unknown notificationType:", notificationType);
     res.status(400).json({ success: false, reason: "unknown_notification_type" });
