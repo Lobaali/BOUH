@@ -59,14 +59,7 @@ class _LoginPageState extends State<LoginPage> {
       return 'يرجى إدخال بريد إلكتروني صحيح';
     }
 
-    const allowedTlds = <String>{
-      'com',
-      'net',
-      'org',
-      'edu',
-      'gov',
-      'sa',
-    };
+    const allowedTlds = <String>{'com', 'net', 'org', 'edu', 'gov', 'sa'};
     final tld = domainParts.last;
     final tldRegex = RegExp(r'^[a-zA-Z]{2,}$');
     if (!tldRegex.hasMatch(tld) || !allowedTlds.contains(tld)) {
@@ -141,9 +134,9 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -156,8 +149,7 @@ class _LoginPageState extends State<LoginPage> {
           case 'user-not-found':
           case 'wrong-password':
           case 'invalid-login-credentials':
-            _passwordError =
-                'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+            _passwordError = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
             break;
           case 'too-many-requests':
             _passwordError =
@@ -225,13 +217,15 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide:
-                          BorderSide(color: BColors.primary.withValues(alpha: 0.6)),
+                      borderSide: BorderSide(
+                        color: BColors.primary.withValues(alpha: 0.6),
+                      ),
                     ),
                     errorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide:
-                          const BorderSide(color: BColors.validationError),
+                      borderSide: const BorderSide(
+                        color: BColors.validationError,
+                      ),
                     ),
                     focusedErrorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -341,8 +335,10 @@ class _LoginPageState extends State<LoginPage> {
                       children: [
                         const Text(
                           'البريد الإلكتروني',
-                          style:
-                              TextStyle(fontSize: 13, color: BColors.darkGrey),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: BColors.darkGrey,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
@@ -362,9 +358,7 @@ class _LoginPageState extends State<LoginPage> {
                               _emailFieldKey.currentState?.validate();
                             }
                           },
-                          decoration: _inputDecoration(
-                            errorText: _emailError,
-                          ),
+                          decoration: _inputDecoration(errorText: _emailError),
                         ),
                       ],
                     ),
@@ -376,8 +370,10 @@ class _LoginPageState extends State<LoginPage> {
                       children: [
                         const Text(
                           'كلمة المرور',
-                          style:
-                              TextStyle(fontSize: 13, color: BColors.darkGrey),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: BColors.darkGrey,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
@@ -460,8 +456,10 @@ class _LoginPageState extends State<LoginPage> {
                       children: [
                         const Text(
                           'نسيت كلمة المرور؟',
-                          style:
-                              TextStyle(fontSize: 13, color: BColors.darkGrey),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: BColors.darkGrey,
+                          ),
                         ),
                         const SizedBox(width: 6),
                         TextButton(
@@ -492,20 +490,14 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  InputDecoration _inputDecoration({
-    String? errorText,
-    Widget? suffixIcon,
-  }) {
+  InputDecoration _inputDecoration({String? errorText, Widget? suffixIcon}) {
     return InputDecoration(
       filled: true,
       fillColor: BColors.white,
       hoverColor: Colors.transparent,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       suffixIcon: suffixIcon != null
-          ? Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: suffixIcon,
-            )
+          ? Padding(padding: const EdgeInsets.only(left: 8), child: suffixIcon)
           : null,
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),

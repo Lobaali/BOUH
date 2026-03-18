@@ -6,14 +6,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
+@Getter
+@Setter
+public class DoctorSuggestionDTO {
 
-public class DoctorSearchDTO {
     private String id;
     private String name;
-    private String areaOfKnowledge;
-    private double averageRating;
     private String profilePhotoURL;
 }
