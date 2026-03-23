@@ -7,7 +7,11 @@ import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import org.springframework.stereotype.Repository;
-
+import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.Transaction;
+import com.google.cloud.firestore.WriteResult;
+import com.google.cloud.firestore.Query;
+import java.util.Objects;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -33,11 +37,13 @@ public class AppointmentRepo {
 
     private final Firestore firestore;
     private static final String COLLECTION = "appointments";
-
+private static final String SLOT_LOCKS_COLLECTION = "appointment_slot_locks";
     public AppointmentRepo(Firestore firestore) {
         this.firestore = firestore;
     }
-
+private String buildSlotLockId(String doctorId, String date, int slotIndex) {
+    return doctorId + "_" + date + "_" + slotIndex;
+}
     /**
      * Returns appointments for the given caregiver with date >= today, ordered by
      * date.
@@ -330,9 +336,105 @@ public class AppointmentRepo {
 
         ref.set(data).get();
 
-        dto.setAppointmentId(ref.getId());
-        dto.setTimeSlotId(String.valueOf(slotIndex));
-        dto.setStartDateTime(startTimestamp);
+    return dto;
+}
+public appointmentDto createAtomically(appointmentDto dto, String date, int slotIndex)
+        throws ExecutionException, InterruptedException {
+
+    if (dto == null) {
+        throw new IllegalArgumentException("Appointment data is required");
+    }
+    if (dto.getDoctorId() == null || dto.getDoctorId().isBlank()) {
+        throw new IllegalArgumentException("doctorId is required");
+    }
+    if (dto.getCaregiverId() == null || dto.getCaregiverId().isBlank()) {
+        throw new IllegalArgumentException("caregiverId is required");
+    }
+    if (date == null || date.isBlank()) {
+        throw new IllegalArgumentException("date is required");
+    }
+    if (slotIndex < 0 || slotIndex >= TimeSlotConfig.SLOT_COUNT) {
+        throw new IllegalArgumentException("Invalid slotIndex");
+    }
+
+    LocalDate localDate = LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE);
+    LocalDateTime startLdt = localDate.atTime(TimeSlotConfig.slotStart(slotIndex));
+    Timestamp startTimestamp = Timestamp.of(Date.from(startLdt.atZone(ZONE).toInstant()));
+
+    String lockId = buildSlotLockId(dto.getDoctorId(), date, slotIndex);
+
+    DocumentReference lockRef = firestore.collection(SLOT_LOCKS_COLLECTION).document(lockId);
+    DocumentReference appointmentRef = firestore.collection(COLLECTION).document();
+
+    ApiFuture<appointmentDto> future = firestore.runTransaction(transaction -> {
+        // 1) Check slot lock
+        DocumentSnapshot lockSnap = transaction.get(lockRef).get();
+        if (lockSnap.exists()) {
+            throw new IllegalStateException("تم حجز هذا الموعد مسبقًا");
+        }
+
+        // 2) Check caregiver conflict atomically
+        Date dateAtStartOfDay = Date.from(localDate.atStartOfDay(ZONE).toInstant());
+
+        Query caregiverConflictQuery = firestore.collection(COLLECTION)
+                .whereEqualTo("caregiverId", dto.getCaregiverId())
+                .whereEqualTo("date", dateAtStartOfDay)
+                .whereEqualTo("slotIndex", slotIndex)
+                .limit(1);
+
+        QuerySnapshot caregiverConflictSnapshot = transaction.get(caregiverConflictQuery).get();
+        if (!caregiverConflictSnapshot.isEmpty()) {
+            throw new IllegalStateException("يوجد لديك موعد آخر في نفس التاريخ والوقت");
+        }
+
+        // 3) Create lock document
+        Map<String, Object> lockData = new HashMap<>();
+        lockData.put("doctorId", dto.getDoctorId());
+        lockData.put("caregiverId", dto.getCaregiverId());
+        lockData.put("date", dateAtStartOfDay);
+        lockData.put("slotIndex", slotIndex);
+        lockData.put("appointmentId", appointmentRef.getId());
+        lockData.put("createdAt", com.google.cloud.firestore.FieldValue.serverTimestamp());
+
+        transaction.set(lockRef, lockData);
+
+        // 4) Create appointment document
+        Map<String, Object> data = new HashMap<>();
+        data.put("caregiverId", dto.getCaregiverId());
+        data.put("doctorId", dto.getDoctorId());
+        data.put("childId", dto.getChildId());
+        data.put("slotIndex", slotIndex);
+        data.put("date", dateAtStartOfDay);
+        data.put("startDateTime", startTimestamp);
+        data.put("endTime", dto.getEndTime());
+        data.put("meetingLink", dto.getMeetingLink());
+        data.put("amount", dto.getAmount());
+        data.put("status", dto.getStatus() == null ? 0 : dto.getStatus());
+        data.put("paymentIntentId", dto.getPaymentIntentId());
+        data.put("timeSlotId", String.valueOf(slotIndex));
+
+        transaction.set(appointmentRef, data);
+
+        appointmentDto created = new appointmentDto();
+        created.setAppointmentId(appointmentRef.getId());
+        created.setCaregiverId(dto.getCaregiverId());
+        created.setDoctorId(dto.getDoctorId());
+        created.setChildId(dto.getChildId());
+        created.setTimeSlotId(String.valueOf(slotIndex));
+        created.setStartDateTime(startTimestamp);
+        created.setEndTime(dto.getEndTime());
+        created.setMeetingLink(dto.getMeetingLink());
+        created.setAmount(dto.getAmount());
+        created.setStatus(dto.getStatus() == null ? 0 : dto.getStatus());
+        created.setPaymentIntentId(dto.getPaymentIntentId());
+
+        return created;
+    });
+
+    return future.get();
+}
+private Timestamp getStartDateTime(DocumentSnapshot doc) {
+    Object raw = doc.get("startDateTime");
 
         return dto;
     }
@@ -365,16 +467,52 @@ public class AppointmentRepo {
         return mapDocToDto(doc);
     }
 
-    public void deleteById(String appointmentId)
-            throws ExecutionException, InterruptedException {
-        if (appointmentId == null || appointmentId.isBlank()) {
-            throw new IllegalArgumentException("appointmentId is required");
+    return mapDocToDto(doc);
+}
+public void deleteByIdAtomically(String appointmentId)
+        throws ExecutionException, InterruptedException {
+
+    if (appointmentId == null || appointmentId.isBlank()) {
+        throw new IllegalArgumentException("appointmentId is required");
+    }
+
+    DocumentReference appointmentRef = firestore.collection(COLLECTION).document(appointmentId);
+
+    ApiFuture<Void> future = firestore.runTransaction(transaction -> {
+        DocumentSnapshot appointmentSnap = transaction.get(appointmentRef).get();
+
+        if (!appointmentSnap.exists()) {
+            throw new IllegalArgumentException("الموعد غير موجود");
         }
 
-        firestore.collection(COLLECTION)
-                .document(appointmentId)
-                .delete()
-                .get();
+        String doctorId = appointmentSnap.getString("doctorId");
+
+        String date = getDateAsYyyyMmDd(appointmentSnap);
+
+        Object slotIndexObj = appointmentSnap.get("slotIndex");
+        int slotIndex = -1;
+        if (slotIndexObj instanceof Number) {
+            slotIndex = ((Number) slotIndexObj).intValue();
+        } else if (slotIndexObj != null) {
+            slotIndex = Integer.parseInt(slotIndexObj.toString());
+        }
+
+        if (doctorId != null && date != null && slotIndex >= 0) {
+            String lockId = buildSlotLockId(doctorId, date, slotIndex);
+            DocumentReference lockRef = firestore.collection(SLOT_LOCKS_COLLECTION).document(lockId);
+            transaction.delete(lockRef);
+        }
+
+        transaction.delete(appointmentRef);
+        return null;
+    });
+
+    future.get();
+}
+public void deleteById(String appointmentId)
+        throws ExecutionException, InterruptedException {
+    if (appointmentId == null || appointmentId.isBlank()) {
+        throw new IllegalArgumentException("appointmentId is required");
     }
 
     //Update Rating
