@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../theme/base_themes/colors.dart';
+import 'package:bouh/theme/base_themes/colors.dart';
 
 /// Reusable bottom navigation bar for the caregiver view.
 ///
 /// Displays four items (RTL): الرئيسية, الرسومات, المواعيد, حسابي.
-/// The active item is highlighted with a circular background (circle.svg).
+/// The active item is highlighted with a circular background (circle.png).
 ///
 /// Optional parameters:
 /// - [currentIndex]: Which item is active (0 = home). Defaults to 0. Clamped to 0..3.
@@ -39,7 +39,6 @@ class CaregiverBottomNav extends StatelessWidget {
 
   // --- Layout constants ---
   static const double _bottomNavHeight = barHeight;
-  static const double _navIconSize = 24;
   static const double _navLabelGap = 4;
   static const double _navActivePillWidth = 130;
   static const double _navActivePillHeight = 60;
@@ -106,13 +105,7 @@ class CaregiverBottomNav extends StatelessWidget {
     VoidCallback? onTap,
   }) {
     final color = BColors.textBlack;
-    final iconWidget = SvgPicture.asset(
-      iconAsset,
-      width: _navIconSize,
-      height: _navIconSize,
-      fit: BoxFit.contain,
-      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-    );
+    final iconWidget = _NavTabSvgIcon(assetPath: iconAsset, color: color);
     final content = Column(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -134,7 +127,6 @@ class CaregiverBottomNav extends StatelessWidget {
         ? SizedBox(
             width: _navActivePillWidth,
             height: _navActivePillHeight,
-            // Stack + SvgPicture: BoxDecoration cannot paint SVG like PNG/JPEG.
             child: Stack(
               alignment: Alignment.center,
               clipBehavior: Clip.none,
@@ -169,6 +161,36 @@ class _NavItemData {
   const _NavItemData({required this.label, required this.iconAsset});
   final String label;
   final String iconAsset;
+}
+
+class _NavTabSvgIcon extends StatelessWidget {
+  const _NavTabSvgIcon({required this.assetPath, required this.color});
+
+  static const double _box = 25;
+
+  final String assetPath;
+  final Color color;
+
+  bool _isDrawingsAsset() => assetPath.toLowerCase().contains('drawings');
+
+  @override
+  Widget build(BuildContext context) {
+    final useContain = _isDrawingsAsset();
+    final fit = useContain ? BoxFit.contain : BoxFit.cover;
+    return SizedBox(
+      width: _box,
+      height: _box,
+      child: SvgPicture.asset(
+        assetPath,
+        width: _box,
+        height: _box,
+        fit: fit,
+        alignment: Alignment.center,
+        clipBehavior: useContain ? Clip.none : Clip.hardEdge,
+        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+      ),
+    );
+  }
 }
 
 // USAGE EXAMPLE
