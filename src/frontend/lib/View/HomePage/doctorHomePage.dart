@@ -11,6 +11,8 @@ import 'package:bouh/services/appointmentsService.dart';
 import 'package:bouh/services/payment/RefundService.dart';
 import 'package:bouh/widgets/confirmation_popup.dart';
 import 'package:bouh/widgets/loading_overlay.dart';
+import 'package:bouh/services/doctorsService.dart';
+import 'package:bouh/dto/doctorBarInfoDto.dart';
 
 /// When used inside [DoctorNavbar], pass [currentIndex] and [onTap] so the
 /// bottom nav reflects the active tab and handles tab changes.
@@ -42,6 +44,7 @@ class DoctorHomePageState extends State<DoctorHomePage>
   final RefundService _refundService = RefundService();
   StreamSubscription<List<UpcomingAppointmentDto>>? _subscription;
   Timer? _ticker;
+  String? _doctorId;
 
   @override
   void initState() {
@@ -76,6 +79,7 @@ class DoctorHomePageState extends State<DoctorHomePage>
     await AuthService.instance.refreshSession();
     final String? doctorId = AuthSession.instance.userId;
     if (!mounted) return;
+    setState(() => _doctorId = doctorId);
     _subscribeToStream(doctorId);
   }
 
@@ -161,7 +165,7 @@ class DoctorHomePageState extends State<DoctorHomePage>
 
   @override
   Widget build(BuildContext context) {
-    print('OPENED DoctorHomePage from: doctorHomePage.dart');
+    // print('OPENED DoctorHomePage from: doctorHomePage.dart');
     final topPadding = MediaQuery.paddingOf(context).top;
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -263,28 +267,89 @@ class DoctorHomePageState extends State<DoctorHomePage>
   Widget _buildCard(UpcomingAppointmentDto dto, {required bool isFirst}) {
     final dateStr = _formatDate(dto.date);
     final timeStr = _formatTimeRange(dto.startTime, dto.endTime);
-    final showJoin = isFirst && _isJoinEnabled(dto);
-    final buttonType = showJoin
-        ? AppointmentButtonType.start
-        : AppointmentButtonType.cancel;
 
+    final showJoin = isFirst && _isJoinEnabled(dto);
+    final canCancel = !showJoin && _canCancelAppointment(dto);
+
+    AppointmentButtonType? buttonType;
     VoidCallback? onActionTap;
+
     if (showJoin) {
+      buttonType = AppointmentButtonType.start;
+
       if (dto.meetingLink != null && dto.meetingLink!.trim().isNotEmpty) {
         final link = dto.meetingLink!.trim();
         onActionTap = () => _openMeetingLink(link);
       }
-    } else {
+    } else if (canCancel) {
+      buttonType = AppointmentButtonType.cancel;
+
       onActionTap = _refundLoading
           ? null
           : () async {
-              final ok = await _refundAppointment(dto);
-              if (ok && mounted) {
+              final refundSucceeded = await _refundAppointment(dto);
+              if (!refundSucceeded) return;
+
+              try {
+                await _appointmentsService.cancelAppointment(
+                  appointmentId: dto.appointmentId,
+                );
+
+                if (!mounted) return;
+
                 setState(() {
                   _todayList.removeWhere(
                     (x) => x.appointmentId == dto.appointmentId,
                   );
                 });
+
+                await showDialog(
+                  context: context,
+                  builder: (_) => Directionality(
+                    textDirection: TextDirection.rtl,
+                    child: AlertDialog(
+                      backgroundColor: BColors.white,
+                      actionsAlignment: MainAxisAlignment.center,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      title: const Text(
+                        'تم الإلغاء بنجاح',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: BColors.textDarkestBlue,
+                        ),
+                      ),
+                      content: const Text(
+                        'تم إلغاء الموعد واسترجاع المبلغ بنجاح.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: BColors.darkGrey,
+                          height: 1.4,
+                        ),
+                      ),
+                      actions: [
+                        ElevatedButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: BColors.primary,
+                            foregroundColor: BColors.white,
+                          ),
+                          child: const Text('حسناً'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              } catch (e) {
+                if (!mounted) return;
+
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text("فشل إلغاء الموعد: $e")));
               }
             };
     }
@@ -316,6 +381,19 @@ class DoctorHomePageState extends State<DoctorHomePage>
     final end = AppointmentsService.parseAppointmentTime(dto.date, dto.endTime);
     if (start == null || end == null) return false;
     return !now.isBefore(start) && now.isBefore(end);
+  }
+
+  static bool _canCancelAppointment(UpcomingAppointmentDto dto) {
+    final now = DateTime.now();
+    final start = AppointmentsService.parseAppointmentTime(
+      dto.date,
+      dto.startTime,
+    );
+
+    if (start == null) return false;
+
+    final cancelDeadline = start.subtract(const Duration(minutes: 30));
+    return now.isBefore(cancelDeadline);
   }
 
   static String _formatDate(String date) {
@@ -425,40 +503,78 @@ class DoctorHomePageState extends State<DoctorHomePage>
           const SizedBox(width: 12),
 
           // Doctor name from /me (AuthSession); rating from profile API when available.
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AuthSession.instance.userName?.trim().isNotEmpty == true
-                    ? 'مرحباً بعودتك، أهلاً ${AuthSession.instance.userName}'
-                    : 'مرحباً بعودتك، أهلاً',
-                style: const TextStyle(
-                  fontFamily: 'Markazi Text',
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 6),
-              Row(
-                children: [
-                  Icon(Icons.star, color: Colors.orange, size: 16),
-                  Icon(Icons.star, color: Colors.orange, size: 16),
-                  Icon(Icons.star, color: Colors.orange, size: 16),
-                  Icon(Icons.star, color: Colors.orange, size: 16),
-                  Icon(Icons.star_half, color: Colors.orange, size: 16),
-                  SizedBox(width: 6),
-                  Text(
-                    '4.5',
-                    style: TextStyle(
-                      fontFamily: 'Markazi Text',
-                      color: Colors.white,
+          Expanded(
+            child: StreamBuilder<DoctorBarInfoDto>(
+              stream: (_doctorId == null || _doctorId!.isEmpty)
+                  ? null
+                  : DoctorsService.streamDoctorBarInfo(doctorId: _doctorId!),
+              builder: (context, snapshot) {
+                final name = snapshot.data?.name.trim().isNotEmpty == true
+                    ? snapshot.data!.name
+                    : (AuthSession.instance.userName?.trim().isNotEmpty == true
+                        ? AuthSession.instance.userName!
+                        : '');
+                final rating = snapshot.data?.averageRating ?? 0.0;
+
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name.isNotEmpty
+                          ? 'مرحباً بعودتك، أهلاً $name'
+                          : 'مرحباً بعودتك، أهلاً',
+                      style: const TextStyle(
+                        fontFamily: 'Markazi Text',
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    const SizedBox(height: 6),
+                    Row(
+                      textDirection: TextDirection.rtl,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: BColors.secondary.withOpacity(0.20),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            textDirection: TextDirection.rtl,
+                            children: [
+                              Text(
+                                rating.toStringAsFixed(1),
+                                style: const TextStyle(
+                                  fontFamily: 'Markazi Text',
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              _RatingStars(
+                                rating: rating.clamp(0.0, 5.0),
+                                size: 16,
+                                filledColor: BColors.accent,
+                                emptyColor: Colors.orange.withOpacity(0.30),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -481,3 +597,84 @@ class DoctorHomePageState extends State<DoctorHomePage>
     );
   }
 }
+
+class _RatingStars extends StatelessWidget {
+  const _RatingStars({
+    required this.rating,
+    required this.size,
+    required this.filledColor,
+    required this.emptyColor,
+  });
+
+  final double rating; // 0..5
+  final double size;
+  final Color filledColor;
+  final Color emptyColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      textDirection: TextDirection.rtl,
+      children: List.generate(5, (i) {
+        final frac = (rating - i).clamp(0.0, 1.0);
+        return Padding(
+          padding: const EdgeInsetsDirectional.only(end: 2),
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) {
+                if (frac <= 0) {
+                  return LinearGradient(colors: [emptyColor, emptyColor])
+                      .createShader(bounds);
+                }
+                if (frac >= 1) {
+                  return LinearGradient(colors: [filledColor, filledColor])
+                      .createShader(bounds);
+                }
+
+                // One icon only; gradient simulates partial fill.
+                // LTR: fill left -> right. RTL: fill right -> left.
+                if (isRtl) {
+                  // Filled region is the RIGHT-most portion.
+                  final t = 1 - frac;
+                  return LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    stops: <double>[0, t, t, 1],
+                    colors: <Color>[
+                      emptyColor,
+                      emptyColor,
+                      filledColor,
+                      filledColor,
+                    ],
+                  ).createShader(bounds);
+                } else {
+                  // Filled region is the LEFT-most portion.
+                  final t = frac;
+                  return LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    stops: <double>[0, t, t, 1],
+                    colors: <Color>[
+                      filledColor,
+                      filledColor,
+                      emptyColor,
+                      emptyColor,
+                    ],
+                  ).createShader(bounds);
+                }
+              },
+              child: Icon(Icons.star, size: size, color: Colors.white),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+// _StarClipper no longer needed (ShaderMask handles fractional fill).
