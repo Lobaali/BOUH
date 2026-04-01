@@ -7,7 +7,6 @@ import 'package:bouh/theme/base_themes/colors.dart';
 import 'package:bouh/theme/base_themes/radius.dart';
 import 'package:bouh/theme/base_themes/typography.dart';
 
-
 //UPLOAD DRAWING PAGE (Step 1 of 3)
 //Permissions: image_picker asks for camera/photo access when the user picks an image.
 //BACKEND PHASE:
@@ -18,8 +17,13 @@ import 'package:bouh/theme/base_themes/typography.dart';
 
 class UploadDrawingPage extends StatefulWidget {
   //Child name chosen on the previous screen Passed along for future BACKEND.
-  final String? selectedChildName;
-  const UploadDrawingPage({super.key, this.selectedChildName});
+  final String childId;
+  final String childName;
+  const UploadDrawingPage({
+    super.key,
+    required this.childId,
+    required this.childName,
+  });
 
   @override
   State<UploadDrawingPage> createState() => _UploadDrawingPageState();
@@ -41,11 +45,10 @@ class _UploadDrawingPageState extends State<UploadDrawingPage> {
         body: SafeArea(
           child: Column(
             children: [
-
               const SizedBox(height: 6),
 
               _buildBackButton(context),
-            
+
               //Stepper: step 0 = (Upload Drawing) is active
               const DrawingAnalysisStepper(currentStep: 0),
 
@@ -301,8 +304,9 @@ class _UploadDrawingPageState extends State<UploadDrawingPage> {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (context) => ProcessingAnalysisPage(
-                      imagePath: _selectedImageFile!.path,
-                      selectedChildName: widget.selectedChildName,
+                      imageFile: _selectedImageFile!,
+                      childId: widget.childId,
+                      childName: widget.childName,
                     ),
                   ),
                 );
