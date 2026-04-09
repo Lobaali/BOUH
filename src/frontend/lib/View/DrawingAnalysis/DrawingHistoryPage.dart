@@ -146,7 +146,9 @@ class _DrawingHistoryPageState extends State<DrawingHistoryPage> {
                       else if (_loadingHistory)
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 60),
-                          child: Center(child: BouhLoadingOverlay()),
+                          child: Center(
+                            child: BouhLoadingOverlay(showBarrier: false),
+                          ),
                         )
                       else if (_historyError != null)
                         _buildErrorState()
@@ -157,7 +159,9 @@ class _DrawingHistoryPageState extends State<DrawingHistoryPage> {
                       if (_loadingMore)
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 16),
-                          child: Center(child: BouhLoadingOverlay()),
+                          child: Center(
+                            child: BouhLoadingOverlay(showBarrier: false),
+                          ),
                         ),
 
                       const SizedBox(height: 24),
@@ -239,7 +243,7 @@ class _DrawingHistoryPageState extends State<DrawingHistoryPage> {
                     ? const SizedBox(
                         height: 16,
                         width: 16,
-                        child: BouhLoadingOverlay(),
+                        child: BouhLoadingOverlay(showBarrier: false, size: 16),
                       )
                     : Text(
                         _selectedChild?.name ??

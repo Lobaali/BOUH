@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:io';
 import 'package:bouh/authentication/AuthSession.dart';
 import 'package:bouh/dto/DrawingAnalysis/AnalysisResultDto.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:bouh/theme/base_themes/colors.dart';
@@ -62,7 +63,7 @@ class _ProcessingAnalysisPageState extends State<ProcessingAnalysisPage>
       duration: const Duration(milliseconds: 3000),
     )..repeat();
     _waveAnimation = Tween<double>(begin: 0, end: 1).animate(_waveController);
-    _runAnalysis(); // 🔴 CHANGED: was _startSimulatedProgress()
+    _runAnalysis();
   }
 
   @override
@@ -79,12 +80,13 @@ class _ProcessingAnalysisPageState extends State<ProcessingAnalysisPage>
   //   85% → 100% : jumps when backend responds
   Future<void> _runAnalysis() async {
     try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await user.getIdToken(true); // force token refresh
+      }
       // ── Compress before upload ───────────────────────────────────────────
       final File fileToUpload = await _compressImage(widget.imageFile);
       // ── Phase 1: Upload image to Firebase Storage ────────────────────────
-      final int bytes = await fileToUpload.length();
-      final int totalKb = (bytes / 1024).ceil();
-
       final caregiverId = AuthSession.instance.userId ?? 'unknown';
       final String storagePath =
           'drawings/$caregiverId/${widget.childId}/${const Uuid().v4()}.jpg';
@@ -146,6 +148,7 @@ class _ProcessingAnalysisPageState extends State<ProcessingAnalysisPage>
         ),
       );
     } catch (e) {
+      debugPrint('[ProcessingAnalysisPage] ERROR: $e');
       if (!mounted) return;
       _timer?.cancel();
       setState(() => _hasError = true);
@@ -155,22 +158,22 @@ class _ProcessingAnalysisPageState extends State<ProcessingAnalysisPage>
   // Slowly moves progress from [startFrom] → 0.85 while waiting for backend
   void _startSlowProgressFrom(double startFrom) {
     _timer?.cancel();
-    const duration = Duration(milliseconds: 400);
+    const duration = Duration(milliseconds: 600);
     int step = 0;
 
     void tick() {
       if (!mounted) return;
       step++;
-      final p = (startFrom + (step / 25) * (0.85 - startFrom)).clamp(
+      final p = (startFrom + (step / 25) * (0.95 - startFrom)).clamp(
         startFrom,
-        0.85,
+        0.95,
       );
       setState(() {
         _progress = p;
         _statusText =
             _statusMessages[(step ~/ 7).clamp(0, _statusMessages.length - 1)];
       });
-      if (p < 0.85) _timer = Timer(duration, tick);
+      if (p < 0.95) _timer = Timer(duration, tick);
     }
 
     _timer = Timer(duration, tick);

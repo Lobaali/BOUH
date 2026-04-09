@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:bouh/theme/base_themes/colors.dart';
 import 'package:bouh/theme/base_themes/radius.dart';
 import 'package:bouh/theme/base_themes/typography.dart';
-
+import 'package:permission_handler/permission_handler.dart';
 //UPLOAD DRAWING PAGE (Step 1 of 3)
 //Permissions: image_picker asks for camera/photo access when the user picks an image.
 //BACKEND PHASE:
@@ -34,6 +34,19 @@ class _UploadDrawingPageState extends State<UploadDrawingPage> {
   _selectedImageFile; //The image file the user selected from (gallery or camera). Null until they pick one.
   final ImagePicker _picker =
       ImagePicker(); //image_picker: opens native Android gallery/camera. It requests permissions when needed.
+
+  @override
+  void initState() {
+    super.initState();
+    _requestPermissions();
+  }
+
+  Future<void> _requestPermissions() async {
+    await Permission.camera.request();
+    await Permission.photos.request();
+    await Permission.storage.request();
+    await Permission.mediaLibrary.request();
+  }
 
   //Main build
   @override
@@ -188,7 +201,7 @@ class _UploadDrawingPageState extends State<UploadDrawingPage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
-              'حمل الرسمة التي ترغب في تحليلها',
+              'يرجى تحميل الرسمة التي ترغب في تحليلها، مع التأكد من التقاطها بشكل واضح ودقيق',
               style: BTypography.bodyText.copyWith(color: BColors.darkGrey),
               textAlign: TextAlign.center,
             ),

@@ -76,19 +76,32 @@ class _RequestAnalysisPageState extends State<RequestAnalysisPage> {
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 16),
-                    _buildTopBar(),
-                    const Spacer(flex: 5),
-                    _buildTitle(),
-                    const SizedBox(height: 40),
-                    _buildChildDropdown(),
-                    const SizedBox(height: 130),
-                    _buildStartButton(),
-                    const Spacer(flex: 3),
-                  ],
+                child: SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight:
+                          MediaQuery.of(context).size.height -
+                          MediaQuery.of(context).padding.top -
+                          MediaQuery.of(context).padding.bottom -
+                          80,
+                    ),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SizedBox(height: 16),
+                          _buildTopBar(),
+                          const Spacer(flex: 3),
+                          _buildTitle(),
+                          const SizedBox(height: 24),
+                          _buildChildDropdown(),
+                          const Spacer(flex: 2),
+                          _buildStartButton(),
+                          const Spacer(flex: 2),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
