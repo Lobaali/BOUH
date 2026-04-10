@@ -51,7 +51,7 @@ class _ProcessingAnalysisPageState extends State<ProcessingAnalysisPage>
   static const List<String> _statusMessages = [
     'جاري التحليل...',
     'تحديد الشعور',
-    'جاري تحميل إجابات التحليل',
+    'جاري تحميل إجابات التحليل..',
     'تقريباً جاهز...',
   ];
 
