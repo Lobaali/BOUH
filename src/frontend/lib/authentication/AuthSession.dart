@@ -47,7 +47,7 @@ class AuthSession {
     _userId = userId;
   }
 
-  //Backend login: set session from response { uid, role, name }. Only place role/name are set. Keeps existing idToken if set (e.g. after Firebase login).
+  //Backend login: set session from response { uid, role, name }. Only place role/name are set. Keeps existing idToken if set
   Future<void> setSessionFromBackend({
     required String uid,
     required String role,
@@ -66,6 +66,17 @@ class AuthSession {
       await prefs.remove(_userNameKeyPrefix + uid);
     }
     await prefs.remove(_legacyRoleKey);
+  }
+
+  //Updates display name after profile edit
+  Future<void> updateCachedUserName(String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return;
+    final uid = _userId;
+    if (uid == null || uid.isEmpty) return;
+    _userName = trimmed;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_userNameKeyPrefix + uid, trimmed);
   }
 
   //Clears in-memory and all persisted session so next login is set fresh from backend.
