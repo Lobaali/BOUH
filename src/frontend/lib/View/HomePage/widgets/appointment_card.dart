@@ -158,7 +158,7 @@ class AppointmentCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        isStart ? 'بدء' : 'إلغاء',
+        isStart ? 'انضمام' : 'إلغاء',
         style: const TextStyle(
           fontFamily: 'Markazi Text',
           color: Colors.white,

@@ -1,6 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:bouh/View/Meeting/agora_call_page.dart';
+import 'package:bouh/config/api_config.dart';
+import 'package:bouh/dto/Meeting/join_meeting_response_dto.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import '../../theme/base_themes/colors.dart';
 import 'package:bouh/View/viewAppointments/widgets/appointmentCard.dart';
@@ -119,10 +124,10 @@ class _BookedAppointmentsUpcomingState
         .doc(uid)
         .snapshots()
         .listen((snapshot) {
-      if (!snapshot.exists && mounted) {
-        _forceLogout();
-      }
-    });
+          if (!snapshot.exists && mounted) {
+            _forceLogout();
+          }
+        });
   }
 
   Future<void> _forceLogout() async {
@@ -483,10 +488,7 @@ class _BookedAppointmentsUpcomingState
       actionLabel = 'انضمام';
       actionColor = BColors.accent;
 
-      if (dto.meetingLink != null && dto.meetingLink!.trim().isNotEmpty) {
-        final link = dto.meetingLink!.trim();
-        onActionTap = () => _openMeetingLink(link);
-      }
+      onActionTap = () => _joinAgoraMeeting(dto.appointmentId);
     } else if (canCancel) {
       actionLabel = 'الغاء';
       actionColor = _cancelRed;
@@ -560,9 +562,9 @@ class _BookedAppointmentsUpcomingState
               }
             };
     } else {
-     // No action available (appointment not active yet and cancellation window passed).
+      // No action available (appointment not active yet and cancellation window passed).
       actionLabel = '';
-     actionColor = BColors.darkGrey;
+      actionColor = BColors.darkGrey;
     }
     //  else {
     //   actionLabel = 'لا يمكن إلغاء الموعد قبل أقل من 30 دقيقة من وقت البدء';
@@ -702,6 +704,68 @@ class _BookedAppointmentsUpcomingState
       return false;
     } finally {
       if (mounted) setState(() => _refundLoading = false);
+    }
+  }
+
+  Future<void> _joinAgoraMeeting(String appointmentId) async {
+    try {
+      final token = AuthSession.instance.idToken;
+
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/appointments/join/$appointmentId',
+      );
+
+      print('=== JOIN DEBUG START ===');
+      print('appointmentId: $appointmentId');
+      print('url: $url');
+      print('token exists: ${token != null && token.isNotEmpty}');
+
+      final res = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('statusCode: ${res.statusCode}');
+      print('response body: ${res.body}');
+      print('=== JOIN DEBUG END ===');
+
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        throw Exception('Join failed (${res.statusCode}): ${res.body}');
+      }
+
+      final data = JoinMeetingResponseDto.fromJson(jsonDecode(res.body));
+
+      print('Agora Data:');
+      print('appId: ${data.appId}');
+      print('channelName: ${data.channelName}');
+      print('token: ${data.token}');
+      print('uid: ${data.uid}');
+      print('CURRENT USER ID: ${AuthSession.instance.userId}');
+      if (!mounted) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AgoraCallPage(
+            appId: data.appId,
+            channelName: data.channelName,
+            token: data.token,
+            uid: data.uid,
+            appointmentId: data.appointmentId,
+          ),
+        ),
+      );
+    } catch (e) {
+      print('JOIN ERROR: $e');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('فشل الدخول إلى الجلسة: $e')));
     }
   }
 }

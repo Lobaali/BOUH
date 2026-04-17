@@ -93,7 +93,7 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
-        log.info("FirebaseAuthFilter hit");
+        //log.info("FirebaseAuthFilter hit");
 
         // Continue the filter chain:
         // - next filters

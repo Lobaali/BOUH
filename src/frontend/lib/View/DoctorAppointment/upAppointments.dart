@@ -1,5 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:bouh/View/Meeting/agora_call_page.dart';
+import 'package:bouh/config/api_config.dart';
+import 'package:bouh/dto/Meeting/join_meeting_response_dto.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:bouh/theme/base_themes/colors.dart';
 import 'package:bouh/View/DoctorAppointment/prevAppointments.dart';
@@ -276,11 +281,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
 
     if (showJoin) {
       buttonType = AppointmentButtonType.start;
-
-      if (dto.meetingLink != null && dto.meetingLink!.trim().isNotEmpty) {
-        final link = dto.meetingLink!.trim();
-        onActionTap = () => _openMeetingLink(link);
-      }
+      onActionTap = () => _joinAgoraMeeting(dto.appointmentId);
     } else if (canCancel) {
       buttonType = AppointmentButtonType.cancel;
 
@@ -478,6 +479,52 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
 
     final cancelDeadline = start.subtract(const Duration(minutes: 30));
     return now.isBefore(cancelDeadline);
+  }
+
+  Future<void> _joinAgoraMeeting(String appointmentId) async {
+    try {
+      final token = AuthSession.instance.idToken;
+
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/appointments/join/$appointmentId',
+      );
+
+      final res = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        throw Exception('Join failed: ${res.body}');
+      }
+
+      final data = JoinMeetingResponseDto.fromJson(jsonDecode(res.body));
+print('=== JOIN RESPONSE FRONTEND ===');
+print('appointmentId: ${data.appointmentId}');
+print('channelName: ${data.channelName}');
+print('uid: ${data.uid}');
+print('token: ${data.token}');
+print('appId: ${data.appId}');
+      if (!mounted) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AgoraCallPage(
+            appId: data.appId,
+            channelName: data.channelName,
+            token: data.token,
+            uid: data.uid,
+            appointmentId: data.appointmentId,
+          ),
+        ),
+      );
+    } catch (e) {
+      print('JOIN ERROR: $e');
+    }
   }
 }
 

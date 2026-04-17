@@ -1,5 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:bouh/View/Meeting/agora_call_page.dart';
+import 'package:bouh/config/api_config.dart';
+import 'package:bouh/dto/Meeting/join_meeting_response_dto.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import '../../theme/base_themes/colors.dart';
 import 'package:bouh/View/viewAppointments/widgets/appointmentCard.dart';
@@ -229,11 +234,7 @@ class CaregiverHomepageState extends State<CaregiverHomepage>
     if (showJoin) {
       actionLabel = 'انضمام';
       actionColor = BColors.accent;
-
-      if (dto.meetingLink != null && dto.meetingLink!.trim().isNotEmpty) {
-        final link = dto.meetingLink!.trim();
-        onActionTap = () => _openMeetingLink(link);
-      }
+      onActionTap = () => _joinAgoraMeeting(dto.appointmentId);
     } else if (canCancel) {
       actionLabel = 'الغاء';
       actionColor = _cancelRed;
@@ -636,5 +637,49 @@ class CaregiverHomepageState extends State<CaregiverHomepage>
         ),
       ],
     );
+  }
+
+  Future<void> _joinAgoraMeeting(String appointmentId) async {
+    try {
+      final token = AuthSession.instance.idToken;
+
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/appointments/join/$appointmentId',
+      );
+
+      final res = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        throw Exception('Join failed: ${res.body}');
+      }
+
+      final data = JoinMeetingResponseDto.fromJson(jsonDecode(res.body));
+
+      if (!mounted) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AgoraCallPage(
+            appId: data.appId,
+            channelName: data.channelName,
+            token: data.token,
+            uid: data.uid,
+            appointmentId: appointmentId,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('فشل الدخول للجلسة: $e')));
+    }
   }
 }

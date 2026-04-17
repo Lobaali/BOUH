@@ -5,7 +5,8 @@ import com.bouh.backend.model.Dto.upcomingAppointmentDto;
 import com.bouh.backend.service.appointments.AppointmentsService;
 import com.bouh.backend.model.Dto.appointmentCreateRequestDto;
 import jakarta.validation.Valid;
-
+import com.bouh.backend.model.Dto.Meeting.JoinMeetingResponseDto;
+import com.bouh.backend.service.appointments.AgoraMeetingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,11 +33,14 @@ import java.util.concurrent.ExecutionException;
 public class appointmentsController {
 
     private final AppointmentsService appointmentsService;
+    private final AgoraMeetingService agoraMeetingService;
 
-    public appointmentsController(AppointmentsService appointmentsService) {
-        this.appointmentsService = appointmentsService;
-
-    }
+    public appointmentsController(
+        AppointmentsService appointmentsService,
+        AgoraMeetingService agoraMeetingService) {
+    this.appointmentsService = appointmentsService;
+    this.agoraMeetingService = agoraMeetingService;
+}
 
     /**
      * GET /api/appointments/upcoming/{caregiverId} — returns list of upcoming
@@ -150,6 +154,41 @@ public ResponseEntity<Map<String, Object>> cancel(
         Map<String, Object> err = new HashMap<>();
         err.put("success", false);
         err.put("message", "Failed to cancel appointment");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(err);
+    }
+}
+@PostMapping(value = "/join/{appointmentId}", produces = MediaType.APPLICATION_JSON_VALUE)
+public ResponseEntity<?> joinAppointment(
+        @PathVariable String appointmentId,
+        @AuthenticationPrincipal String firebaseDocUID) {
+    try {
+        JoinMeetingResponseDto response =
+                agoraMeetingService.joinAppointment(firebaseDocUID, appointmentId);
+
+        return ResponseEntity.ok(response);
+
+    } catch (IllegalArgumentException e) {
+        Map<String, Object> err = new HashMap<>();
+        err.put("success", false);
+        err.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(err);
+
+    } catch (SecurityException e) {
+        Map<String, Object> err = new HashMap<>();
+        err.put("success", false);
+        err.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(err);
+
+    } catch (IllegalStateException e) {
+        Map<String, Object> err = new HashMap<>();
+        err.put("success", false);
+        err.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(err);
+
+    } catch (Exception e) {
+        Map<String, Object> err = new HashMap<>();
+        err.put("success", false);
+        err.put("message", "Failed to load meeting session");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(err);
     }
 }
