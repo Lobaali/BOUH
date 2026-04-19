@@ -87,7 +87,7 @@ public class AppointmentsService {
      */
     public List<upcomingAppointmentDto> getUpcomingAppointments(String caregiverId)
             throws ExecutionException, InterruptedException {
-        List<appointmentDto> docs = appointmentRepo.findByCaregiverIdAndDateFromToday(caregiverId);
+        List<appointmentDto> docs = appointmentRepo.findUpcomingByCaregiverId(caregiverId);
         LocalTime now = ZonedDateTime.now(ZONE).toLocalTime();
         String today = ZonedDateTime.now(ZONE).toLocalDate().toString();
         docs.removeIf(d -> isTodaySlotPassed(d, today, now));
@@ -101,8 +101,8 @@ public class AppointmentsService {
      */
     public List<upcomingAppointmentDto> getPreviousAppointments(String caregiverId)
             throws ExecutionException, InterruptedException {
-        List<appointmentDto> past = appointmentRepo.findByCaregiverIdAndDateBeforeToday(caregiverId);
-        List<appointmentDto> fromToday = appointmentRepo.findByCaregiverIdAndDateFromToday(caregiverId);
+        List<appointmentDto> past = appointmentRepo.findPastByCaregiverId(caregiverId);
+        List<appointmentDto> fromToday = appointmentRepo.findUpcomingByCaregiverId(caregiverId);
         String today = ZonedDateTime.now(ZONE).toLocalDate().toString();
         LocalTime now = ZonedDateTime.now(ZONE).toLocalTime();
         for (appointmentDto d : fromToday) {
@@ -116,7 +116,7 @@ public class AppointmentsService {
 
     public List<upcomingAppointmentDto> getUpcomingAppointmentsByDoctor(String doctorId)
             throws ExecutionException, InterruptedException {
-        List<appointmentDto> docs = appointmentRepo.findByDoctorIdAndDateFromToday(doctorId);
+        List<appointmentDto> docs = appointmentRepo.findUpcomingByDoctorId(doctorId);
         LocalTime now = ZonedDateTime.now(ZONE).toLocalTime();
         String today = ZonedDateTime.now(ZONE).toLocalDate().toString();
         docs.removeIf(d -> isTodaySlotPassed(d, today, now));
@@ -126,8 +126,8 @@ public class AppointmentsService {
 
     public List<upcomingAppointmentDto> getPreviousAppointmentsByDoctor(String doctorId)
             throws ExecutionException, InterruptedException {
-        List<appointmentDto> past = appointmentRepo.findByDoctorIdAndDateBeforeToday(doctorId);
-        List<appointmentDto> fromToday = appointmentRepo.findByDoctorIdAndDateFromToday(doctorId);
+        List<appointmentDto> past = appointmentRepo.findPastByDoctorId(doctorId);
+        List<appointmentDto> fromToday = appointmentRepo.findUpcomingByDoctorId(doctorId);
         String today = ZonedDateTime.now(ZONE).toLocalDate().toString();
         LocalTime now = ZonedDateTime.now(ZONE).toLocalTime();
         for (appointmentDto d : fromToday) {

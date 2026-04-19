@@ -319,7 +319,7 @@ public class doctorRepo {
             }
 
             // only check
-            List<appointmentDto> upcoming = appointment.findByDoctorIdAndDateFromToday(uid);
+            List<appointmentDto> upcoming = appointment.findUpcomingByDoctorId(uid);
 
             if (!upcoming.isEmpty()) {
                 return "upcoming-appointment-found";
