@@ -6,7 +6,7 @@ public class PredictionMapper {
 
     // Emotion labels, matching training class order
     private static final String[] CLASSES = {
-            "تفاؤل",
+            "سعادة",
             "حزن",
             "غضب",
             "خوف",
