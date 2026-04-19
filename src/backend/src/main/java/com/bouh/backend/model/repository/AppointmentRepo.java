@@ -51,7 +51,7 @@ public class AppointmentRepo {
      * Returns appointments for the given caregiver with date >= today, ordered by
      * start time ascending.
      */
-    public List<appointmentDto> findByCaregiverIdAndDateFromToday(String caregiverId)
+    public List<appointmentDto> findUpcomingByCaregiverId(String caregiverId)
             throws ExecutionException, InterruptedException {
         if (caregiverId == null || caregiverId.isBlank()) {
             return new ArrayList<>();
@@ -85,7 +85,7 @@ public class AppointmentRepo {
      * Returns appointments for the given caregiver with date < today, ordered by
      * start time descending.
      */
-    public List<appointmentDto> findByCaregiverIdAndDateBeforeToday(String caregiverId)
+    public List<appointmentDto> findPastByCaregiverId(String caregiverId)
             throws ExecutionException, InterruptedException {
         if (caregiverId == null || caregiverId.isBlank()) {
             return new ArrayList<>();
@@ -119,7 +119,7 @@ public class AppointmentRepo {
      * Returns appointments for the given doctor with date >= today, ordered by
      * start time ascending.
      */
-    public List<appointmentDto> findByDoctorIdAndDateFromToday(String doctorId)
+    public List<appointmentDto> findUpcomingByDoctorId(String doctorId)
             throws ExecutionException, InterruptedException {
         if (doctorId == null || doctorId.isBlank()) {
             return new ArrayList<>();
@@ -153,7 +153,7 @@ public class AppointmentRepo {
      * Returns appointments for the given doctor with date < today, ordered by start
      * time descending.
      */
-    public List<appointmentDto> findByDoctorIdAndDateBeforeToday(String doctorId)
+    public List<appointmentDto> findPastByDoctorId(String doctorId)
             throws ExecutionException, InterruptedException {
         if (doctorId == null || doctorId.isBlank()) {
             return new ArrayList<>();
