@@ -4,8 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import java.util.List;
 
-import com.bouh.backend.model.Dto.DoctorSuggestionDTO;
-
 /**
  * Response body for POST /api/drawingAnalysis/analyze
  * 
@@ -29,5 +27,5 @@ public class DrawingAnalysisResponseDto {
      * Up to 3 suggested doctors.
      * Empty list when threshold not met — never null.
      */
-    private List<DoctorSuggestionDTO> doctors;
+    private List<String> doctorIds;
 }

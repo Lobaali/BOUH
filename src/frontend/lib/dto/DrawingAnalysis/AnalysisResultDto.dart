@@ -1,7 +1,3 @@
-// Maps to DrawingAnalysisResponseDto.java
-// Returned after a fresh analysis completes — not used for history.
-import 'package:bouh/dto/DrawingAnalysis/DoctorSuggestionDto.dart';
-
 class AnalysisResult {
   final String drawingId;
   final String emotion;
@@ -10,25 +6,24 @@ class AnalysisResult {
   final String emotionalInterpretation;
 
   /// Empty list when threshold not met — never null.
-  final List<DoctorSuggestionDto> doctors;
+  final List<String> doctorIds;
 
   const AnalysisResult({
     required this.drawingId,
     required this.emotion,
     required this.emotionalInterpretation,
-    required this.doctors,
+    required this.doctorIds,
   });
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json) {
-    final doctors = (json['doctors'] as List? ?? [])
-        .map((e) => DoctorSuggestionDto.fromJson(e as Map<String, dynamic>))
-        .toList();
     return AnalysisResult(
       drawingId: (json['drawingId'] ?? '').toString(),
       emotion: (json['emotion'] ?? '').toString(),
       emotionalInterpretation: (json['emotionalInterpretation'] ?? '')
           .toString(),
-      doctors: doctors,
+      doctorIds: (json['doctorIds'] as List? ?? [])
+          .map((e) => e.toString())
+          .toList(),
     );
   }
 }

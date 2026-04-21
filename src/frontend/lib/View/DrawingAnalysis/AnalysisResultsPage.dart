@@ -2,24 +2,25 @@ import 'package:bouh/View/BookAppointment/DoctorDetails.dart';
 import 'package:bouh/dto/doctorDto.dart';
 import 'package:bouh/dto/doctorSummaryDto.dart';
 import 'package:bouh/services/doctorsService.dart';
+import 'package:bouh/widgets/loading_overlay.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:bouh/theme/base_themes/colors.dart';
 import 'package:bouh/theme/base_themes/radius.dart';
 import 'package:bouh/theme/base_themes/typography.dart';
 import 'package:bouh/View/DrawingAnalysis/drawing_analysis_stepper.dart';
-import 'package:bouh/dto/DrawingAnalysis/DoctorSuggestionDto.dart';
 
 class AnalysisResultsPage extends StatelessWidget {
   //When true, hide the top stepper and show only the back button (when called in drawing history).
   final bool hideStepper;
   final String emotionalInterpretation;
-  final List<DoctorSuggestionDto> doctors;
+  final List<String> doctorIds;
 
   const AnalysisResultsPage({
     super.key,
     this.hideStepper = false,
     required this.emotionalInterpretation,
-    required this.doctors,
+    required this.doctorIds,
   });
 
   //Main build
@@ -66,7 +67,7 @@ class AnalysisResultsPage extends StatelessWidget {
                     children: [
                       //Interpretations section
                       _buildInterpretationsSection(),
-                      if (doctors.isNotEmpty) ...[
+                      if (doctorIds.isNotEmpty) ...[
                         _buildDoctorsSection(context),
                         const SizedBox(height: 32),
                       ],
@@ -147,37 +148,60 @@ class AnalysisResultsPage extends StatelessWidget {
     );
   }
 
+  //helper
+  Future<String?> _resolveImageUrl(String? rawUrl) async {
+    if (rawUrl == null || rawUrl.isEmpty) return null;
+    if (rawUrl.startsWith('http')) return rawUrl;
+    try {
+      return await FirebaseStorage.instance.ref(rawUrl).getDownloadURL();
+    } catch (e) {
+      return null;
+    }
+  }
+
   //Builds the recommended doctors section.
   Widget _buildDoctorsSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: Text(
-            'الأطباء المقترحين',
-            style: BTypography.sectionTitle,
-            textAlign: TextAlign.right,
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        //Builds a list of doctor cards
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: doctors
-              .map(
-                (d) => _buildDoctorCard(
-                  context,
-                  d.name,
-                  imageUrl: d.profilePhotoURL,
-                  doctorId: d.id,
-                ),
-              )
-              .toList(),
-        ),
-      ],
+    return FutureBuilder<List<DoctorDto>>(
+      future: Future.wait(
+        doctorIds.map((id) async {
+          final doctor = await DoctorsService.getDoctorDetails(id);
+          doctor.profilePhotoURL = await _resolveImageUrl(
+            doctor.profilePhotoURL,
+          );
+          return doctor;
+        }),
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: BouhOvalLoadingIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SizedBox();
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('الأطباء المقترحين', style: BTypography.sectionTitle),
+            const SizedBox(height: 16),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final d in snapshot.data!) ...[
+                    _buildDoctorCard(
+                      context,
+                      d.name,
+                      imageUrl: d.profilePhotoURL,
+                      doctorId: d.doctorId,
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -233,7 +257,7 @@ class AnalysisResultsPage extends StatelessWidget {
           children: [
             //Doctor image: network image if [imageUrl] provided, else placeholder icon
             Container(
-              width: 75,
+              width: 70,
               height: 75,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,

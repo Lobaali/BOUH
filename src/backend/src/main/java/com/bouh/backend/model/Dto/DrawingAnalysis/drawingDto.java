@@ -3,7 +3,6 @@ import com.google.cloud.firestore.annotation.DocumentId;
 import lombok.Data;
 import java.time.Instant;
 import java.util.List;
-import com.bouh.backend.model.Dto.DoctorSuggestionDTO;
 
 @Data //setters,getters and constructors
 public class drawingDto {
@@ -14,5 +13,5 @@ public class drawingDto {
     private String emotionClass;
     private String emotionalInterpretation;
     private Instant createdAt;
-    private List<DoctorSuggestionDTO> doctors;
+    private List<String> doctorIds;
 }

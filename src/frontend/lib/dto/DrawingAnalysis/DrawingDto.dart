@@ -1,12 +1,10 @@
-import 'package:bouh/dto/DrawingAnalysis/DoctorSuggestionDto.dart';
-
 class DrawingDto {
   final String drawingId;
   final String imageURL;
   final String emotionClass;
   final String emotionalInterpretation;
   final String createdAt;
-  final List<DoctorSuggestionDto> doctors;
+  final List<String> doctorIds;
 
   DrawingDto({
     required this.drawingId,
@@ -14,16 +12,10 @@ class DrawingDto {
     required this.emotionClass,
     required this.emotionalInterpretation,
     required this.createdAt,
-    required this.doctors,
+    required this.doctorIds,
   });
 
   factory DrawingDto.fromJson(Map<String, dynamic> json) {
-    // Parse embedded doctors array — each element is a map
-    final rawDoctors = json['doctors'] as List<dynamic>? ?? [];
-    final doctors = rawDoctors
-        .map((e) => DoctorSuggestionDto.fromJson(e as Map<String, dynamic>))
-        .toList();
-
     return DrawingDto(
       drawingId: (json['drawingId'] ?? '').toString(),
       imageURL: (json['imageURL'] ?? '').toString(),
@@ -31,7 +23,9 @@ class DrawingDto {
       emotionalInterpretation: (json['emotionalInterpretation'] ?? '')
           .toString(),
       createdAt: (json['createdAt'] ?? '').toString(),
-      doctors: doctors,
+      doctorIds: (json['doctorIds'] as List? ?? [])
+          .map((e) => e.toString())
+          .toList(),
     );
   }
 
@@ -42,7 +36,7 @@ class DrawingDto {
       'emotionClass': emotionClass,
       'emotionalInterpretation': emotionalInterpretation,
       'createdAt': createdAt,
-      'doctors': doctors.map((d) => d.toJson()).toList(),
+      'doctorIds': doctorIds,
     };
   }
 }
