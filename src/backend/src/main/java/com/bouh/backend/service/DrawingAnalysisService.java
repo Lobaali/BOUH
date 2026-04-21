@@ -1,7 +1,6 @@
 package com.bouh.backend.service;
 
 import com.bouh.backend.model.repository.DrawingRepo;
-import com.bouh.backend.model.Dto.DoctorSuggestionDTO;
 import com.bouh.backend.model.Dto.DrawingAnalysis.DrawingAnalysisRequestDto;
 import com.bouh.backend.model.Dto.DrawingAnalysis.DrawingAnalysisResponseDto;
 import com.bouh.backend.model.Dto.DrawingAnalysis.HistoryResponseDto;
@@ -59,21 +58,21 @@ public class DrawingAnalysisService {
                     }
                 });
 
-        CompletableFuture<List<DoctorSuggestionDTO>> doctorsFuture =
+        CompletableFuture<List<String>> doctorsFuture =
                 CompletableFuture.supplyAsync(() -> {
                     try {
-                        List<DoctorSuggestionDTO> result = doctorSuggestionService
+                        List<String> result = doctorSuggestionService
                                 .suggestDoctors(caregiverId, request.getChildId(), emotion);
-                        log.info("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$[DrawingAnalysisService] Doctors suggested: {}", result.size()); 
+                        log.info("[DrawingAnalysisService] Doctors suggested: {}", result.size()); 
                         return result;
                     } catch (Exception e) {
-                        log.error("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$[DrawingAnalysisService] Doctor suggestion failed: {}", e.getMessage());
+                        log.error("[DrawingAnalysisService] Doctor suggestion failed: {}", e.getMessage());
                         return List.of();
                     }
                 });
 
         String interpretation;
-        List<DoctorSuggestionDTO> doctors;
+        List<String> doctors;
         try {
             CompletableFuture.allOf(interpretationFuture, doctorsFuture).get();
             interpretation = interpretationFuture.get();
@@ -83,7 +82,12 @@ public class DrawingAnalysisService {
             throw new RuntimeException("[DrawingAnalysisService] Pipeline interrupted", e);
         }
 
-        // Step 3
+        // Step 3 — only save if interpretation succeeded
+        if (interpretation.isBlank()) {
+            log.warn("[DrawingAnalysisService] Skipping save — Gemini failed to interpret");
+            return new DrawingAnalysisResponseDto(null, emotion, interpretation, doctors);
+        }
+
         String drawingId = drawingRepo.save(
                 caregiverId,
                 request.getChildId(),

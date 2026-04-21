@@ -453,7 +453,7 @@ class _DrawingHistoryPageState extends State<DrawingHistoryPage> {
                               hideStepper: true,
                               emotionalInterpretation:
                                   item.emotionalInterpretation,
-                              doctors: item.doctors,
+                              doctorIds: item.doctorIds,
                             ),
                           ),
                         );

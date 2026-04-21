@@ -1,6 +1,4 @@
 package com.bouh.backend.service;
-
-import com.bouh.backend.model.Dto.DoctorSuggestionDTO;
 import com.bouh.backend.model.repository.DoctorSuggestionRepository;
 import org.springframework.stereotype.Service;
 
@@ -8,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 @Service
 public class DoctorSuggestionService {
@@ -17,7 +16,7 @@ public class DoctorSuggestionService {
         this.doctorSuggestionRepository = doctorSuggestionRepository;
     }
 
-    public List<DoctorSuggestionDTO> suggestDoctors(String caregiverId, String childId, String emotionClass)
+    public List<String> suggestDoctors(String caregiverId, String childId, String emotionClass)
             throws ExecutionException, InterruptedException {
 
         boolean shouldSuggest = doctorSuggestionRepository
@@ -30,16 +29,10 @@ public class DoctorSuggestionService {
         // Fetch up to 3 matching doctors
         List<Map<String, Object>> doctorsData = doctorSuggestionRepository.findDoctorsByAreaOfKnowledge(emotionClass);
 
-        // Map to DTO
-        List<DoctorSuggestionDTO> suggestions = new ArrayList<>();
-        for (Map<String, Object> doc : doctorsData) {
-            DoctorSuggestionDTO dto = new DoctorSuggestionDTO(
-                    (String) doc.get("id"),
-                    (String) doc.get("name"),
-                    (String) doc.get("profilePhotoURL"));
-            suggestions.add(dto);
-        }
+        // return only IDs
+        return doctorsData.stream()
+                .map(doc -> (String) doc.get("id"))
+                .collect(Collectors.toList());
+            }
 
-        return suggestions;
     }
-}

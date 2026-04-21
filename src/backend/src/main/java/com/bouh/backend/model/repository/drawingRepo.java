@@ -1,6 +1,5 @@
 package com.bouh.backend.model.repository;
 
-import com.bouh.backend.model.Dto.DoctorSuggestionDTO;
 import com.bouh.backend.model.Dto.DrawingAnalysis.drawingDto;
 import com.bouh.backend.model.Dto.DrawingAnalysis.HistoryResponseDto;
 import com.google.cloud.Timestamp;
@@ -62,26 +61,13 @@ public class DrawingRepo {
                        String imageURL,
                        String emotionClass,
                        String emotionalInterpretation,
-                       List<DoctorSuggestionDTO> doctors) {
-
-        // Convert each DoctorSuggestionDTO into a plain Map so Firestore
-        // can serialize it as a nested object inside the document array
-        List<Map<String, Object>> doctorMaps = new ArrayList<>();
-        for (DoctorSuggestionDTO doctor : doctors) {
-            Map<String, Object> doctorMap = new HashMap<>();
-            doctorMap.put("id", doctor.getId());
-            doctorMap.put("name", doctor.getName());
-            // profilePhotoURL may be null — Firestore stores null fields correctly
-            doctorMap.put("profilePhotoURL",
-                    doctor.getProfilePhotoURL() != null ? doctor.getProfilePhotoURL() : "");
-            doctorMaps.add(doctorMap);
-        }
+                       List<String> doctors) {
 
         Map<String, Object> data = new HashMap<>();
         data.put("imageURL", imageURL); 
         data.put("emotionClass", emotionClass);
         data.put("emotionalInterpretation", emotionalInterpretation);
-        data.put("doctors", doctorMaps); // embedded array of maps
+        data.put("doctors", doctors); 
         data.put("createdAt", Timestamp.now());
 
         try {
@@ -180,23 +166,16 @@ public class DrawingRepo {
                     dto.setCreatedAt(ts.toDate().toInstant());
                 }
 
-                // Read the embedded doctors array back into DoctorSuggestionDTO objects.
-                // Firestore stores each doctor as a Map<String, Object>.
-                List<DoctorSuggestionDTO> doctors = new ArrayList<>();
-                List<?> rawDoctors = (List<?>) doc.get("doctors"); 
+                List<String> doctorIds = new ArrayList<>();
+                List<?> rawDoctors = (List<?>) doc.get("doctors");
                 if (rawDoctors != null) {
                     for (Object raw : rawDoctors) {
-                        if (raw instanceof Map<?, ?> map) {
-                            DoctorSuggestionDTO doctor = new DoctorSuggestionDTO(
-                                    (String) map.get("id"),
-                                    (String) map.get("name"),
-                                    emptyToNull((String) map.get("profilePhotoURL"))
-                            );
-                            doctors.add(doctor);
+                        if (raw instanceof String id) {
+                            doctorIds.add(id);
                         }
                     }
                 }
-                dto.setDoctors(doctors);
+                dto.setDoctorIds(doctorIds);
 
                 records.add(dto);
             }
@@ -214,10 +193,5 @@ public class DrawingRepo {
             Thread.currentThread().interrupt();
             throw new RuntimeException("[DrawingRepo] Failed to fetch drawing history", e);
         }
-    }
-
-    /** Converts empty string back to null for profilePhotoURL. */
-    private String emptyToNull(String value) {
-        return (value == null || value.isBlank()) ? null : value;
     }
 }

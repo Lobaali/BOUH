@@ -1,7 +1,6 @@
 package com.bouh.backend.model.repository;
 
 import com.google.api.core.ApiFuture;
-import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
 import org.springframework.stereotype.Repository;
 
@@ -14,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.Collections;
-import java.util.HashMap;
 
 @Repository
 public class DoctorSuggestionRepository {

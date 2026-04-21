@@ -143,7 +143,7 @@ class _ProcessingAnalysisPageState extends State<ProcessingAnalysisPage>
           builder: (_) => AnalysisResultsPage(
             hideStepper: false,
             emotionalInterpretation: result.emotionalInterpretation,
-            doctors: result.doctors,
+            doctorIds: result.doctorIds,
           ),
         ),
       );

@@ -1,6 +1,5 @@
 package com.bouh.backend.controller;
 
-import com.bouh.backend.model.Dto.DoctorSuggestionDTO;
 import com.bouh.backend.service.DoctorSuggestionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,12 +17,12 @@ public class DoctorSuggestionController {
     }
 
     @GetMapping("/{caregiverId}/{childId}/{emotionClass}")
-    public ResponseEntity<List<DoctorSuggestionDTO>> getSuggestions(
+    public ResponseEntity<List<String>> getSuggestions(
             @PathVariable String caregiverId,
             @PathVariable String childId,
             @PathVariable String emotionClass) throws ExecutionException, InterruptedException {
 
-        List<DoctorSuggestionDTO> suggestions = doctorSuggestionService.suggestDoctors(caregiverId, childId,
+        List<String> suggestions = doctorSuggestionService.suggestDoctors(caregiverId, childId,
                 emotionClass);
 
         return ResponseEntity.ok(suggestions);
