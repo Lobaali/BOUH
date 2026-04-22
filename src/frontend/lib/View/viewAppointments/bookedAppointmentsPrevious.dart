@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../theme/base_themes/colors.dart';
 import 'package:bouh/View/caregiverHomepage/widgets/caregiverBottomNav.dart';
@@ -59,6 +60,11 @@ class _BookedAppointmentsPreviousState
   List<UpcomingAppointmentDto> _upcomingCache = [];
   Timer? _ticker;
 
+  // One Firestore listener per distinct doctorId in the current list.
+  // Triggers a re-fetch when a doctor updates their profile photo.
+  final Map<String, StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>
+      _doctorListeners = {};
+
   @override
   void initState() {
     super.initState();
@@ -85,6 +91,10 @@ class _BookedAppointmentsPreviousState
   void _subscribeToStream(String? caregiverId) {
     _subscription?.cancel();
     _ticker?.cancel();
+    for (final sub in _doctorListeners.values) {
+      sub.cancel();
+    }
+    _doctorListeners.clear();
 
     if (caregiverId == null || caregiverId.isEmpty) {
       setState(() {
@@ -115,6 +125,7 @@ class _BookedAppointmentsPreviousState
               _error = null;
             });
             _startTicker();
+            _updateDoctorListeners(_list);
           },
           onError: (e) {
             if (!mounted) return;
@@ -126,6 +137,57 @@ class _BookedAppointmentsPreviousState
             });
           },
         );
+  }
+
+  /// Keep doctor-photo listeners in sync with the current list.
+  /// Called after every stream update.
+  void _updateDoctorListeners(List<UpcomingAppointmentDto> list) {
+    final currentIds = list
+        .map((d) => d.doctorId)
+        .whereType<String>()
+        .where((id) => id.isNotEmpty)
+        .toSet();
+
+    // Cancel listeners for doctors no longer in the list
+    _doctorListeners.keys
+        .where((id) => !currentIds.contains(id))
+        .toList()
+        .forEach((id) => _doctorListeners.remove(id)?.cancel());
+
+    // Add a listener for each new doctorId (skip the initial snapshot so we
+    // only react to actual changes, not the first read).
+    for (final doctorId in currentIds) {
+      if (_doctorListeners.containsKey(doctorId)) continue;
+      _doctorListeners[doctorId] = FirebaseFirestore.instance
+          .collection('doctors')
+          .doc(doctorId)
+          .snapshots()
+          .skip(1)
+          .listen((_) => _refetchOnDoctorChange());
+    }
+  }
+
+  /// Called when any watched doctor document changes.
+  /// Evicts stale cached images then re-fetches the appointment list.
+  Future<void> _refetchOnDoctorChange() async {
+    final caregiverId = AuthSession.instance.userId;
+    if (caregiverId == null || caregiverId.isEmpty || !mounted) return;
+    for (final dto in _list) {
+      final url = dto.doctorProfilePhotoURL;
+      if (url != null && url.isNotEmpty) NetworkImage(url).evict();
+    }
+    try {
+      final data =
+          await _appointmentsService.getFullPreviousWithUpcoming(caregiverId);
+      if (!mounted) return;
+      setState(() {
+        _list = data.$1;
+        _upcomingCache = data.$2;
+      });
+      _updateDoctorListeners(_list);
+    } catch (_) {
+      // Silent — the main stream will re-sync on the next appointment change.
+    }
   }
 
   /// Like Upcoming: every second move ended appointments from _upcomingCache into _list (no HTTP).
@@ -176,6 +238,10 @@ class _BookedAppointmentsPreviousState
   void dispose() {
     _subscription?.cancel();
     _ticker?.cancel();
+    for (final sub in _doctorListeners.values) {
+      sub.cancel();
+    }
+    _doctorListeners.clear();
     super.dispose();
   }
 
@@ -428,11 +494,11 @@ class _BookedAppointmentsPreviousState
   Widget _buildCardFor(UpcomingAppointmentDto dto) {
     final dateStr = _formatDate(dto.date);
     final timeStr = _formatTimeRange(dto.startTime, dto.endTime);
-    ImageProvider? profileImage;
-    if (dto.doctorProfilePhotoURL != null &&
-        dto.doctorProfilePhotoURL!.isNotEmpty) {
-      profileImage = NetworkImage(dto.doctorProfilePhotoURL!);
-    }
+    final ImageProvider? profileImage =
+        (dto.doctorProfilePhotoURL != null &&
+            dto.doctorProfilePhotoURL!.isNotEmpty)
+        ? NetworkImage(dto.doctorProfilePhotoURL!)
+        : const AssetImage('assets/images/default_ProfileImage.png');
     final attendanceStatus = _statusToDisplay(dto.status);
     // <Rating feature> Only show rate button when:
     // - attended (status == 1)
