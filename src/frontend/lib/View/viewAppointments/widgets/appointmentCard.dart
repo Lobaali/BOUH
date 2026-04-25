@@ -73,7 +73,7 @@ class AppointmentCard extends StatelessWidget {
   static const double _cardBorderWidth = 1.5;
   static const double _avatarSize = 52;
   static const double _avatarOffsetY = 6;
-  static const double _joinButtonWidth = 84;
+  static const double _joinButtonWidth = 70;
   static const double _joinButtonHeight = 20;
   static const double _chipRight = 20;
 
@@ -198,7 +198,8 @@ class AppointmentCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 0),
-                    if (actionLabel != null) _buildJoinButton(),
+                    if (actionLabel != null && actionLabel!.isNotEmpty)
+                      _buildJoinButton(),
                   ],
                 ),
               ],
@@ -244,7 +245,8 @@ class AppointmentCard extends StatelessWidget {
         width: _avatarSize,
         height: _avatarSize,
         child: Image(
-          image: profileImage ??
+          image:
+              profileImage ??
               const AssetImage('assets/images/default_ProfileImage.png'),
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => Image.asset(
