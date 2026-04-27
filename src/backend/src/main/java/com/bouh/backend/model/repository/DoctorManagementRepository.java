@@ -120,4 +120,37 @@ public class DoctorManagementRepository {
 
         return doctor;
     }
+
+    public void applyQualificationUpdate(String doctorId, String requestId) {
+    try {
+        // Reference to doctor document
+        DocumentReference doctorRef = firestore.collection("doctors").document(doctorId);
+
+        // Reference to the qualification edit request
+        DocumentReference requestRef = firestore.collection("qualificationEditRequests").document(requestId);
+
+        // Fetch the request document
+        DocumentSnapshot requestSnap = requestRef.get().get();
+
+        // Validate that the request exists
+        if (!requestSnap.exists()) {
+            throw new RuntimeException("Request not found");
+        }
+
+        // Extract the new qualifications from the request
+        List<String> newQualifications =
+                (List<String>) requestSnap.get("newQualifications");
+
+        // If null, initialize as empty list to avoid errors
+        if (newQualifications == null) {
+            newQualifications = new ArrayList<>();
+        }
+
+        // Replace the doctor's qualifications with the new list
+        doctorRef.update("qualifications", newQualifications).get();
+
+    } catch (Exception e) {
+        throw new RuntimeException("Failed to update qualifications", e);
+    }
+    }
 }
