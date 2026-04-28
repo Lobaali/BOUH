@@ -83,6 +83,9 @@ public void deleteChild(String caregiverId, String childId) throws Exception {
 
     boolean deleted = childrenRepo.deleteChild(caregiverId, childId);
     if (!deleted) throw new IllegalStateException("Child not found.");
+
+
+    appointmentsService.cancelUpcomingAppointmentsForChild(caregiverId, childId);
 }
 
     // ---------------- Helpers ----------------
