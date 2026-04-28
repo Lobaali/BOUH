@@ -1,4 +1,5 @@
 import 'package:bouh/View/BookAppointment/ApointmentDetails.dart';
+import 'package:bouh/widgets/loading_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:bouh/theme/base_themes/colors.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -301,13 +302,7 @@ class _BookingViewState extends State<BookingView> {
               border: Border.all(color: Colors.black.withOpacity(0.10)),
             ),
             child: isLoadingChildren
-                ? const Center(
-                    child: SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
+                ? const Center(child: BouhOvalLoadingIndicator())
                 : childrenError != null
                 ? Center(
                     child: Text(
@@ -487,7 +482,7 @@ class _BookingViewState extends State<BookingView> {
         const SizedBox(height: 10),
 
         if (isLoadingSchedule)
-          const CircularProgressIndicator()
+          const Center(child: BouhOvalLoadingIndicator())
         else if (scheduleError != null)
           Text(scheduleError!, style: const TextStyle(color: Colors.red))
         else if (availableTimeSlots.isNotEmpty)
@@ -619,14 +614,7 @@ class _BookingViewState extends State<BookingView> {
               ),
             ),
             child: isCheckingConflict
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Colors.white,
-                    ),
-                  )
+                ? const Center(child: BouhOvalLoadingIndicator())
                 : const Text(
                     "حجز",
                     style: TextStyle(

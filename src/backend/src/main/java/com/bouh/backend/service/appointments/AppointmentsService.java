@@ -712,5 +712,17 @@ if (!isCaregiverOwner && !isDoctorOwner) {
                     return null;
                 });
     }
+    public void cancelUpcomingAppointmentsForChild(String caregiverId, String childId)
+        throws ExecutionException, InterruptedException {
+
+    List<appointmentDto> appointments =
+            appointmentRepo.findUpcomingByCaregiverId(caregiverId);
+
+    for (appointmentDto appt : appointments) {
+        if (childId.equals(appt.getChildId())) {
+            appointmentRepo.deleteByIdAtomically(appt.getAppointmentId());
+        }
+    }
+}
 
 }
