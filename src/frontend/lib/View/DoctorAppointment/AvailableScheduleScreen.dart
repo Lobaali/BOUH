@@ -210,7 +210,10 @@ class _AvailableScheduleScreenState extends State<AvailableScheduleScreen> {
               color: BColors.textDarkestBlue,
               size: 20,
             ),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () async {
+              final shouldPop = await _confirmDiscard();
+              if (shouldPop && mounted) Navigator.of(context).pop();
+            },
           ),
         ],
         title: const Text(
@@ -240,8 +243,12 @@ class _AvailableScheduleScreenState extends State<AvailableScheduleScreen> {
                           child: _circleIconButton(
                             icon: isEditMode ? Icons.close : Icons.edit,
                             iconColor: BColors.textDarkestBlue,
-                            onTap: () {
+                            onTap: () async {
                               if (isEditMode) {
+                                if (draftByDate.isNotEmpty) {
+                                  final confirmed = await _confirmDiscard();
+                                  if (!confirmed) return;
+                                }
                                 _cancelEdit();
                                 return;
                               }
@@ -767,6 +774,21 @@ class _AvailableScheduleScreenState extends State<AvailableScheduleScreen> {
     }
 
     return true;
+  }
+
+  Future<bool> _confirmDiscard() async {
+    if (!isEditMode || draftByDate.isEmpty)
+      return true; // no changes, allow freely
+
+    final confirmed = await ConfirmationPopup.show(
+      context,
+      title: "تجاهل التغييرات",
+      message: "لديك تغييرات غير محفوظة. هل تريد الخروج بدون حفظ؟",
+      confirmText: "خروج",
+      cancelText: "إلغاء",
+    );
+
+    return confirmed;
   }
 
   Widget _circleIconButton({
