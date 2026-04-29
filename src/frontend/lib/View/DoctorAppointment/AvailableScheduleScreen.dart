@@ -797,7 +797,7 @@ class _AvailableScheduleScreenState extends State<AvailableScheduleScreen> {
       title: "تغييرات غير محفوظة",
       message: "لديك تغييرات غير محفوظة. هل تريد الخروج بدون حفظ؟",
       confirmText: "مغادرة",
-      cancelText: "إلغاء",
+      cancelText: "بقاء",
     );
 
     return confirmed;
