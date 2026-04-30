@@ -67,7 +67,8 @@ class AnalysisResultsPage extends StatelessWidget {
                     children: [
                       //Interpretations section
                       _buildInterpretationsSection(),
-                      if (doctorIds.isNotEmpty) ...[
+                      if (doctorIds.isNotEmpty &&
+                          emotionalInterpretation.isNotEmpty) ...[
                         _buildDoctorsSection(context),
                         const SizedBox(height: 32),
                       ],
@@ -241,7 +242,9 @@ class AnalysisResultsPage extends StatelessWidget {
               content: Text(
                 'تعذر تحميل بيانات الطبيب، يرجى المحاولة مرة أخرى',
                 textDirection: TextDirection.rtl,
+                style: TextStyle(color: BColors.white),
               ),
+              backgroundColor: BColors.validationError,
             ),
           );
         }
