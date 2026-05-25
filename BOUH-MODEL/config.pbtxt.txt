@@ -1,0 +1,119 @@
+# =========================
+# Model Identity
+# =========================
+# Unique name used when sending inference requests
+name: "bouh_classifier"
+
+# Backend used to run the model → ONNX Runtime on CPU
+platform: "onnxruntime_onnx"
+
+# =========================
+# Maximum batch size Triton can form automatically
+# Corresponds to: MAX_BATCH_SIZE ← 32
+# =========================
+max_batch_size: 32
+
+# =========================
+# Input Definition
+# =========================
+# Defines what the model expects as input
+# Must match the name used during ONNX export
+# torch.onnx.export(... input_names=["image"])
+
+input [
+  {
+    name: "image"
+    data_type: TYPE_FP32  # Requires preprocessed float32 data (not raw images)
+    dims: [3, 224, 224]  # NCHW format → channels, height, width
+  }
+]
+
+
+# =========================
+# Output Definition
+# =========================
+# Defines what the model returns
+# Must match torch.onnx.export(... output_names=["logits"])
+
+output [
+  {
+    name: "logits"  
+    data_type: TYPE_FP32  # Float32 outputs
+    dims: [5]  # 5 classes → classification output as logits
+  }
+]
+
+
+# =========================
+# Instance Configuration (CPU Parallelism)
+# =========================
+# Runs multiple model instances in parallel on CPU
+
+instance_group [
+  {
+    kind: KIND_CPU  # Force CPU execution
+    count: 2  # Parallel model instances for throughput improvement
+  }
+]
+
+
+# =========================
+# Dynamic Batching
+# =========================
+# Dynamic batching configuration
+# Implements Algorithm 2: Dynamic Batching Algorithm
+# FCFS_QUEUE is handled internally by Triton.
+#
+# When requests arrive, Triton:
+# 1. Stores them in a queue
+# 2. Attempts to form preferred batch sizes
+# 3. Sends a batch when either:
+#      - preferred size reached
+#      - timeout reached
+
+dynamic_batching {
+
+# =========================
+  # Corresponds to:
+  # PREFERRED_BATCH_SIZES ← [4, 8, 16, 32]
+  # Triton will try to assemble batches of these sizes first
+# =========================
+  preferred_batch_size: [4, 8, 16, 32]
+  # Triton tries to form batches of these sizes
+
+
+# =========================
+  # Corresponds to:
+  # MAX_WAIT_TIME_MS ← 50 ms
+  #
+  # Triton will wait up to 50ms microseconds for more requests
+  # before sending a smaller batch.
+# =========================
+
+  max_queue_delay_microseconds: 50000
+}
+
+# =========================
+# ONNX Runtime Thread Tuning
+# =========================
+# Number of CPU threads used inside each operation
+# Conv models are compute-heavy, so increasing this lets a single request use multiple cores
+# → reduces latency of each inference. Should be set close to available vCPUs.
+parameters: {
+  key: "intra_op_num_threads"
+  value: { string_value: "4" }
+}
+
+# =========================
+# Optimization (CPU Acceleration)
+# =========================
+# Uses OpenVINO to optimize ONNX for Intel CPUs
+# significantly reduce latency
+
+optimization {
+  execution_accelerators {
+    cpu_execution_accelerator {
+      name: "openvino"
+    }
+  }
+}

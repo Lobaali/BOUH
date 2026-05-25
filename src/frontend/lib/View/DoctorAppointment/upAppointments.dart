@@ -349,7 +349,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                         ),
                       ),
                       content: const Text(
-                        'تم إلغاء الموعد واسترجاع المبلغ بنجاح.',
+                        'تم إلغاء الموعد بنجاح.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 15,
@@ -443,7 +443,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     final confirm = await ConfirmationPopup.show(
       context,
       title: 'تأكيد الإلغاء',
-      message: 'هل تريد إلغاء الموعد واسترجاع المبلغ؟',
+      message: 'هل تريد إلغاء الموعد؟',
       confirmText: 'تأكيد',
       cancelText: 'رجوع',
       isDestructive: true,
